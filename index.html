@@ -349,6 +349,17 @@
 
   </div>
 
+  <div id="csvReminderBanner" class="rounded-2xl border border-rose-200 bg-rose-50/80 px-4 py-3 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+    <div class="flex items-start gap-3">
+      <div class="w-9 h-9 rounded-xl bg-white border border-rose-200 text-rose-600 flex items-center justify-center">!</div>
+      <div>
+        <div class="text-sm font-bold text-rose-800">Preview Mode: ระบบแสดงตัวอย่างเพียง 1 เคส</div>
+        <div class="text-xs text-rose-700 mt-0.5">กรุณา Upload CSV ล่าสุดก่อนเริ่มศึกษา เพื่อให้ Dashboard แสดงข้อมูลจริงทั้งหมด</div>
+      </div>
+    </div>
+    <button onclick="document.getElementById('csvFileInput').click()" class="shrink-0 px-4 py-2 rounded-xl bg-rose-600 hover:bg-rose-700 text-white text-xs font-bold shadow-sm">📥 Upload CSV ตอนนี้</button>
+  </div>
+
   <!-- Case Summaries Grid -->
   <div id="cardGrid" class="grid grid-cols-1 gap-4 max-w-4xl mx-auto w-full">
     <!-- Case Cards Injected by JS -->
@@ -1974,7 +1985,8 @@ let userAnswers = [];
 let currentSort = 'priority';
 let lastImportedAt = null;
 let currentCasePage = 1;
-const CASES_PER_PAGE = 1;
+const CASES_PER_PAGE = 999999;
+let csvHasBeenImported = false;
 
 // Category Definitions for Modern Minimalist Cards
 const CATEGORIES = [
@@ -2164,13 +2176,15 @@ function sortCases(list) {
 function renderDatasetStatus() {
   const target = document.getElementById('datasetStatus');
   if (!target) return;
+  const reminder = document.getElementById('csvReminderBanner');
+  if (reminder) reminder.classList.toggle('hidden', csvHasBeenImported);
   const importedText = lastImportedAt
     ? `อัปเดตล่าสุด: ${lastImportedAt.toLocaleDateString('th-TH')} ${lastImportedAt.toLocaleTimeString('th-TH', {hour:'2-digit', minute:'2-digit'})}`
-    : 'ข้อมูลเริ่มต้นถูกฝังในไฟล์แล้ว พร้อม import CSV เพิ่มเติม';
+    : 'Preview Mode: แสดงตัวอย่างเพียง 1 เคส — กรุณา Upload CSV ล่าสุดก่อนใช้งานข้อมูลจริง';
   target.innerHTML = `
-    <div class="font-semibold text-slate-800">Data status</div>
-    <div class="mt-1">จำนวนเคสทั้งหมด <strong class="text-brand-700">${ALL_CASES.length}</strong> เคส · Bookmark <strong class="text-emerald-700">${bookmarkedIds.size}</strong> รายการ</div>
-    <div class="mt-1 text-slate-500">${importedText}</div>
+    <div class="font-semibold ${csvHasBeenImported ? 'text-emerald-700' : 'text-rose-700'}">${csvHasBeenImported ? '✓ CSV Data Loaded' : '⚠ Preview Mode — Upload CSV Required'}</div>
+    <div class="mt-1">จำนวนเคสที่กำลังแสดง <strong class="text-brand-700">${ALL_CASES.length}</strong> เคส · Bookmark <strong class="text-emerald-700">${bookmarkedIds.size}</strong> รายการ</div>
+    <div class="mt-1 ${csvHasBeenImported ? 'text-slate-500' : 'text-rose-600 font-medium'}">${importedText}</div>
   `;
 }
 
@@ -2539,17 +2553,18 @@ function renderGrid() {
   let filtered = ALL_CASES.filter(matchesFilters);
   filtered = sortCases(filtered);
   const totalFiltered = filtered.length;
-  const totalPages = Math.max(1, Math.ceil(totalFiltered / CASES_PER_PAGE));
-  if (currentCasePage > totalPages) currentCasePage = totalPages;
-  const startIndex = (currentCasePage - 1) * CASES_PER_PAGE;
-  const visibleCases = filtered.slice(startIndex, startIndex + CASES_PER_PAGE);
+  const visibleCases = filtered;
 
   const grid = document.getElementById('cardGrid');
   renderHeroStats(filtered);
   renderActiveContext();
   renderDatasetStatus();
-  renderPagination(totalFiltered);
-  document.getElementById('resultCount').innerHTML = `พบ <strong>${totalFiltered}</strong> เคส · กำลังแสดง <strong>${totalFiltered ? startIndex + 1 : 0}</strong> เคสจากผลลัพธ์ <span class="text-slate-400">· 1 case/page · sorted by <strong class="text-slate-600">${currentSort}</strong></span>`;
+  const paginationBar = document.getElementById('paginationBar');
+  if (paginationBar) paginationBar.classList.add('hidden');
+  const modeText = csvHasBeenImported
+    ? `แสดงทั้งหมด <strong>${totalFiltered}</strong> เคสจาก CSV`
+    : `Preview <strong>${totalFiltered}</strong> เคส · กรุณา Upload CSV ก่อนใช้งานข้อมูลจริง`;
+  document.getElementById('resultCount').innerHTML = `${modeText} <span class="text-slate-400">· sorted by <strong class="text-slate-600">${currentSort}</strong></span>`;
 
   if (filtered.length === 0) {
     grid.innerHTML = `
@@ -3126,6 +3141,7 @@ document.getElementById('csvFileInput').addEventListener('change', (e) => {
         }
 
         ALL_CASES = normalizeCases(rows);
+        csvHasBeenImported = true;
         lastImportedAt = new Date();
         resetToAllCases();
         renderDatasetStatus();
@@ -3153,7 +3169,8 @@ document.getElementById('sortSelect').addEventListener('change', (e) => {
 });
 
 window.onload = function() {
-  ALL_CASES = normalizeCases(SEED_DATA);
+  csvHasBeenImported = false;
+  ALL_CASES = normalizeCases(SEED_DATA.slice(0, 1));
   updateBookmarkUI();
   renderCategoryCards();
   renderChips();
