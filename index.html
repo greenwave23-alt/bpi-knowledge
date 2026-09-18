@@ -27,16 +27,16 @@
         },
         colors: {
           brand: {
-            50: '#eff6ff',
-            100: '#dbeafe',
-            200: '#bfdbfe',
-            300: '#93c5fd',
-            400: '#60a5fa',
-            500: '#3b82f6',
-            600: '#2563eb',
-            700: '#1d4ed8',
-            800: '#1e40af',
-            900: '#1e3a8a',
+            50: '#fef2f2',
+            100: '#fee2e2',
+            200: '#fecaca',
+            300: '#fca5a5',
+            400: '#f87171',
+            500: '#ef4444',
+            600: '#dc2626',
+            700: '#b91c1c',
+            800: '#991b1b',
+            900: '#7f1d1d',
           }
         },
         keyframes: {
@@ -79,13 +79,13 @@
     transform: translateY(-4px);
   }
   .minimal-card:hover {
-    box-shadow: 0 22px 40px -24px rgba(37, 99, 235, 0.35), 0 8px 20px -12px rgba(15, 23, 42, 0.12);
+    box-shadow: 0 22px 40px -24px rgba(220, 38, 38, 0.24), 0 8px 20px -12px rgba(15, 23, 42, 0.12);
   }
 
   .hero-surface {
     background:
-      radial-gradient(circle at top right, rgba(59,130,246,0.18), transparent 28%),
-      radial-gradient(circle at left bottom, rgba(16,185,129,0.16), transparent 24%),
+      radial-gradient(circle at top right, rgba(220,38,38,0.14), transparent 28%),
+      radial-gradient(circle at left bottom, rgba(100,116,139,0.12), transparent 24%),
       linear-gradient(135deg, rgba(255,255,255,0.98), rgba(248,250,252,0.94));
   }
 
@@ -96,22 +96,33 @@
   }
 
   .kpi-card.active-kpi {
-    border-color: rgba(37,99,235,0.35);
-    box-shadow: 0 18px 40px -28px rgba(37,99,235,0.35);
+    border-color: rgba(220,38,38,0.24);
+    box-shadow: 0 18px 40px -28px rgba(220,38,38,0.24);
   }
 
   .quick-link.active,
   .nav-pill.active {
-    background: linear-gradient(90deg, rgba(37,99,235,1), rgba(16,185,129,0.92));
+    background: linear-gradient(90deg, rgba(220,38,38,1), rgba(71,85,105,0.96));
     color: white;
     border-color: transparent;
-    box-shadow: 0 12px 28px -18px rgba(37,99,235,0.45);
+    box-shadow: 0 12px 28px -18px rgba(220,38,38,0.34);
   }
 
   .insight-pill {
     background: rgba(255,255,255,0.82);
     border: 1px solid rgba(226,232,240,0.9);
     backdrop-filter: blur(8px);
+  }
+
+  .red-gray-accent {
+    background: linear-gradient(135deg, rgba(254,242,242,0.94), rgba(248,250,252,0.98));
+    border: 1px solid rgba(203,213,225,0.9);
+  }
+
+  .pagination-btn:disabled {
+    opacity: 0.38;
+    cursor: not-allowed;
+    transform: none !important;
   }
 
   @media print {
@@ -121,7 +132,7 @@
   }
 </style>
 </head>
-<body class="font-sans text-slate-800 bg-gradient-to-br from-slate-50 via-sky-50/50 to-emerald-50/40 min-h-screen flex flex-col antialiased selection:bg-brand-600 selection:text-white">
+<body class="font-sans text-slate-800 bg-gradient-to-br from-slate-50 via-red-50/30 to-slate-100 min-h-screen flex flex-col antialiased selection:bg-brand-600 selection:text-white">
 
 <header class="glass-header border-b border-slate-200 sticky top-0 z-30 transition-all shadow-sm">
   <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-3">
@@ -177,7 +188,7 @@
         <div class="space-y-3">
           <div class="flex flex-wrap items-center gap-2">
             <span class="px-3 py-1 rounded-full text-[11px] font-mono font-bold tracking-wider uppercase bg-white text-brand-700 border border-brand-100">CSV Driven Knowledge Hub</span>
-            <span class="px-3 py-1 rounded-full text-[11px] font-mono font-bold tracking-wider uppercase bg-emerald-50 text-emerald-700 border border-emerald-100">Minimal Modern Theme</span>
+            <span class="px-3 py-1 rounded-full text-[11px] font-mono font-bold tracking-wider uppercase bg-slate-100 text-slate-700 border border-slate-200">Red · Gray Minimal Theme</span>
           </div>
           <div>
             <h2 class="text-2xl sm:text-3xl font-bold tracking-tight text-slate-900">BPI Learning Library | คลังเรียนรู้สาเหตุ บทเรียน และแนวทางป้องกัน</h2>
@@ -339,8 +350,23 @@
   </div>
 
   <!-- Case Summaries Grid -->
-  <div id="cardGrid" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+  <div id="cardGrid" class="grid grid-cols-1 gap-4 max-w-4xl mx-auto w-full">
     <!-- Case Cards Injected by JS -->
+  </div>
+
+  <div id="paginationBar" class="max-w-4xl mx-auto w-full hidden">
+    <div class="red-gray-accent rounded-2xl px-4 py-3 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 shadow-sm">
+      <div class="text-xs text-slate-500">
+        <span class="font-semibold text-slate-700">Default display:</span> 1 case / page
+        <span class="mx-2 text-slate-300">•</span>
+        <span id="pageInfo">Page 1 / 1</span>
+      </div>
+      <div class="flex items-center gap-2">
+        <button id="btnPrevPage" onclick="changeCasePage(-1)" class="pagination-btn px-3.5 py-2 rounded-xl bg-white border border-slate-200 text-slate-700 text-xs font-semibold hover:border-brand-300 hover:text-brand-700 transition-all">← Previous</button>
+        <div id="pageNumberBadge" class="min-w-10 h-9 px-3 rounded-xl bg-brand-600 text-white flex items-center justify-center text-xs font-mono font-bold shadow-sm">1</div>
+        <button id="btnNextPage" onclick="changeCasePage(1)" class="pagination-btn px-3.5 py-2 rounded-xl bg-slate-800 border border-slate-800 text-white text-xs font-semibold hover:bg-slate-900 transition-all">Next →</button>
+      </div>
+    </div>
   </div>
 
 </main>
@@ -1947,6 +1973,8 @@ let quizScore = 0;
 let userAnswers = [];
 let currentSort = 'priority';
 let lastImportedAt = null;
+let currentCasePage = 1;
+const CASES_PER_PAGE = 1;
 
 // Category Definitions for Modern Minimalist Cards
 const CATEGORIES = [
@@ -2209,6 +2237,7 @@ function focusFacet(facetKey, value, e=null) {
   renderCategoryCards();
   renderChips();
   updateClearFilterButton();
+  resetCasePage();
   renderGrid();
   focusCasesSection();
 }
@@ -2222,6 +2251,7 @@ function applyQuickView(view) {
   renderCategoryCards();
   renderChips();
   updateClearFilterButton();
+  resetCasePage();
   renderGrid();
   highlightQuickAction(view);
   focusCasesSection();
@@ -2305,6 +2335,7 @@ function selectCategory(catId) {
   selectedTypeFilter = catId;
   renderCategoryCards();
   updateClearFilterButton();
+  resetCasePage();
   renderGrid();
   highlightQuickAction();
 
@@ -2342,6 +2373,7 @@ function toggleBookmarkFilter() {
     icon.classList.remove('text-brand-600', 'fill-brand-600');
   }
   updateClearFilterButton();
+  resetCasePage();
   renderGrid();
   highlightQuickAction(showOnlyBookmarks ? 'bookmarks' : null);
 }
@@ -2431,6 +2463,7 @@ function clearSearchOnly() {
   searchTerm = '';
   document.getElementById('searchInput').value = '';
   updateClearFilterButton();
+  resetCasePage();
   renderGrid();
   highlightQuickAction();
 }
@@ -2441,6 +2474,7 @@ function resetToAllCases() {
   renderCategoryCards();
   renderChips();
   updateClearFilterButton();
+  resetCasePage();
   renderGrid();
   highlightQuickAction();
 }
@@ -2469,15 +2503,53 @@ function matchesFilters(c) {
 }
 
 
+function renderPagination(totalItems) {
+  const bar = document.getElementById('paginationBar');
+  const info = document.getElementById('pageInfo');
+  const badge = document.getElementById('pageNumberBadge');
+  const prev = document.getElementById('btnPrevPage');
+  const next = document.getElementById('btnNextPage');
+  if (!bar || !info || !badge || !prev || !next) return;
+
+  const totalPages = Math.max(1, Math.ceil(totalItems / CASES_PER_PAGE));
+  if (currentCasePage > totalPages) currentCasePage = totalPages;
+  if (currentCasePage < 1) currentCasePage = 1;
+
+  bar.classList.toggle('hidden', totalItems === 0);
+  info.textContent = `Page ${currentCasePage} / ${totalPages} · ${totalItems} case${totalItems === 1 ? '' : 's'}`;
+  badge.textContent = currentCasePage;
+  prev.disabled = currentCasePage <= 1;
+  next.disabled = currentCasePage >= totalPages;
+}
+
+function changeCasePage(direction) {
+  const filtered = sortCases(ALL_CASES.filter(matchesFilters));
+  const totalPages = Math.max(1, Math.ceil(filtered.length / CASES_PER_PAGE));
+  currentCasePage = Math.min(totalPages, Math.max(1, currentCasePage + direction));
+  renderGrid();
+  const grid = document.getElementById('cardGrid');
+  if (grid) grid.scrollIntoView({ behavior: 'smooth', block: 'start' });
+}
+
+function resetCasePage() {
+  currentCasePage = 1;
+}
+
 function renderGrid() {
   let filtered = ALL_CASES.filter(matchesFilters);
   filtered = sortCases(filtered);
+  const totalFiltered = filtered.length;
+  const totalPages = Math.max(1, Math.ceil(totalFiltered / CASES_PER_PAGE));
+  if (currentCasePage > totalPages) currentCasePage = totalPages;
+  const startIndex = (currentCasePage - 1) * CASES_PER_PAGE;
+  const visibleCases = filtered.slice(startIndex, startIndex + CASES_PER_PAGE);
 
   const grid = document.getElementById('cardGrid');
   renderHeroStats(filtered);
   renderActiveContext();
   renderDatasetStatus();
-  document.getElementById('resultCount').innerHTML = `แสดง <strong>${filtered.length}</strong> จากทั้งหมด ${ALL_CASES.length} เคส <span class="text-slate-400">· sorted by <strong class="text-slate-600">${currentSort}</strong></span>`;
+  renderPagination(totalFiltered);
+  document.getElementById('resultCount').innerHTML = `พบ <strong>${totalFiltered}</strong> เคส · กำลังแสดง <strong>${totalFiltered ? startIndex + 1 : 0}</strong> เคสจากผลลัพธ์ <span class="text-slate-400">· 1 case/page · sorted by <strong class="text-slate-600">${currentSort}</strong></span>`;
 
   if (filtered.length === 0) {
     grid.innerHTML = `
@@ -2493,7 +2565,7 @@ function renderGrid() {
     return;
   }
 
-  grid.innerHTML = filtered.map(c => {
+  grid.innerHTML = visibleCases.map(c => {
     const isBookmarked = bookmarkedIds.has(c.id);
     let sevBorder = 'border-l-emerald-500';
     let sevBadge = 'bg-emerald-50 text-emerald-700 border-emerald-200';
@@ -3069,12 +3141,14 @@ document.getElementById('csvFileInput').addEventListener('change', (e) => {
 document.getElementById('searchInput').addEventListener('input', (e) => {
   searchTerm = e.target.value.trim();
   updateClearFilterButton();
+  resetCasePage();
   renderGrid();
   highlightQuickAction();
 });
 
 document.getElementById('sortSelect').addEventListener('change', (e) => {
   currentSort = e.target.value;
+  resetCasePage();
   renderGrid();
 });
 
