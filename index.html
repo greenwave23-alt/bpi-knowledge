@@ -119,6 +119,125 @@
     border: 1px solid rgba(203,213,225,0.9);
   }
 
+
+  /* Interactive Case Deck ------------------------------------------------ */
+  .case-view-shell {
+    position: relative;
+  }
+
+  .deck-overview {
+    display: grid;
+    grid-template-columns: repeat(1, minmax(0, 1fr));
+    gap: 1rem;
+    align-items: start;
+  }
+
+  @media (min-width: 768px) {
+    .deck-overview { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  }
+
+  @media (min-width: 1180px) {
+    .deck-overview { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+  }
+
+  .case-stack-group {
+    border: 1px solid rgba(203,213,225,0.86);
+    background: linear-gradient(180deg, rgba(255,255,255,0.98), rgba(248,250,252,0.94));
+    border-radius: 1.5rem;
+    padding: 1rem;
+    overflow: visible;
+    box-shadow: 0 18px 38px -30px rgba(15,23,42,0.35);
+  }
+
+  .case-stack-stage {
+    position: relative;
+    padding: .35rem .15rem .2rem;
+    perspective: 1100px;
+  }
+
+  .deck-case-card {
+    position: relative;
+    min-height: 92px;
+    border-radius: 1.15rem;
+    border: 1px solid rgba(203,213,225,0.92);
+    background: rgba(255,255,255,0.97);
+    box-shadow: 0 14px 28px -24px rgba(15,23,42,0.6);
+    padding: .8rem .9rem;
+    cursor: pointer;
+    transform-origin: 50% 100%;
+    transition: transform .28s cubic-bezier(.16,1,.3,1), box-shadow .28s ease, border-color .28s ease, background .28s ease;
+    animation: deckFloat 4.8s ease-in-out infinite;
+    animation-delay: var(--deck-delay, 0ms);
+  }
+
+  .deck-case-card + .deck-case-card {
+    margin-top: -31px;
+  }
+
+  .deck-case-card:nth-child(3n+1) { transform: rotate(-.35deg); }
+  .deck-case-card:nth-child(3n+2) { transform: rotate(.3deg); }
+  .deck-case-card:nth-child(3n) { transform: rotate(-.15deg); }
+
+  .deck-case-card:hover,
+  .deck-case-card:focus-visible {
+    z-index: 50 !important;
+    transform: translateY(-8px) translateX(5px) rotate(0deg) scale(1.018);
+    border-color: rgba(220,38,38,0.40);
+    background: #fff;
+    box-shadow: 0 26px 48px -24px rgba(220,38,38,0.28), 0 14px 28px -22px rgba(15,23,42,0.42);
+    outline: none;
+  }
+
+  .deck-case-card::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    border-radius: inherit;
+    pointer-events: none;
+    background: linear-gradient(115deg, transparent 0%, rgba(255,255,255,.56) 45%, transparent 62%);
+    transform: translateX(-115%);
+    transition: transform .65s ease;
+  }
+
+  .deck-case-card:hover::after { transform: translateX(115%); }
+
+  .deck-severity-high { border-left: 4px solid #dc2626; }
+  .deck-severity-medium { border-left: 4px solid #f59e0b; }
+  .deck-severity-low { border-left: 4px solid #64748b; }
+
+  .focused-case-grid {
+    display: grid;
+    grid-template-columns: repeat(1, minmax(0, 1fr));
+    gap: 1rem;
+  }
+  @media (min-width: 768px) {
+    .focused-case-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  }
+  @media (min-width: 1180px) {
+    .focused-case-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+  }
+
+  .view-mode-pill {
+    display: inline-flex;
+    align-items: center;
+    gap: .45rem;
+    border-radius: 999px;
+    padding: .38rem .72rem;
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: .02em;
+  }
+
+  @keyframes deckFloat {
+    0%, 100% { translate: 0 0; }
+    50% { translate: 0 -2px; }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .deck-case-card { animation: none !important; transition-duration: .01ms !important; }
+    html { scroll-behavior: auto !important; }
+  }
+
   .pagination-btn:disabled {
     opacity: 0.38;
     cursor: not-allowed;
@@ -360,24 +479,11 @@
     <button onclick="document.getElementById('csvFileInput').click()" class="shrink-0 px-4 py-2 rounded-xl bg-rose-600 hover:bg-rose-700 text-white text-xs font-bold shadow-sm">📥 Upload CSV ตอนนี้</button>
   </div>
 
-  <!-- Case Summaries Grid -->
-  <div id="cardGrid" class="grid grid-cols-1 gap-4 max-w-4xl mx-auto w-full">
-    <!-- Case Cards Injected by JS -->
-  </div>
+  <!-- Interactive Case View -->
+  <div id="caseViewHeader" class="case-view-shell rounded-2xl border border-slate-200 bg-white/85 px-4 py-3 shadow-sm"></div>
 
-  <div id="paginationBar" class="max-w-4xl mx-auto w-full hidden">
-    <div class="red-gray-accent rounded-2xl px-4 py-3 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 shadow-sm">
-      <div class="text-xs text-slate-500">
-        <span class="font-semibold text-slate-700">Default display:</span> 1 case / page
-        <span class="mx-2 text-slate-300">•</span>
-        <span id="pageInfo">Page 1 / 1</span>
-      </div>
-      <div class="flex items-center gap-2">
-        <button id="btnPrevPage" onclick="changeCasePage(-1)" class="pagination-btn px-3.5 py-2 rounded-xl bg-white border border-slate-200 text-slate-700 text-xs font-semibold hover:border-brand-300 hover:text-brand-700 transition-all">← Previous</button>
-        <div id="pageNumberBadge" class="min-w-10 h-9 px-3 rounded-xl bg-brand-600 text-white flex items-center justify-center text-xs font-mono font-bold shadow-sm">1</div>
-        <button id="btnNextPage" onclick="changeCasePage(1)" class="pagination-btn px-3.5 py-2 rounded-xl bg-slate-800 border border-slate-800 text-white text-xs font-semibold hover:bg-slate-900 transition-all">Next →</button>
-      </div>
-    </div>
+  <div id="cardGrid" class="w-full">
+    <!-- Interactive deck / focused case cards injected by JS -->
   </div>
 
 </main>
@@ -1984,8 +2090,6 @@ let quizScore = 0;
 let userAnswers = [];
 let currentSort = 'priority';
 let lastImportedAt = null;
-let currentCasePage = 1;
-const CASES_PER_PAGE = 999999;
 let csvHasBeenImported = false;
 
 // Category Definitions for Modern Minimalist Cards
@@ -2251,7 +2355,6 @@ function focusFacet(facetKey, value, e=null) {
   renderCategoryCards();
   renderChips();
   updateClearFilterButton();
-  resetCasePage();
   renderGrid();
   focusCasesSection();
 }
@@ -2265,7 +2368,6 @@ function applyQuickView(view) {
   renderCategoryCards();
   renderChips();
   updateClearFilterButton();
-  resetCasePage();
   renderGrid();
   highlightQuickAction(view);
   focusCasesSection();
@@ -2349,7 +2451,6 @@ function selectCategory(catId) {
   selectedTypeFilter = catId;
   renderCategoryCards();
   updateClearFilterButton();
-  resetCasePage();
   renderGrid();
   highlightQuickAction();
 
@@ -2387,7 +2488,6 @@ function toggleBookmarkFilter() {
     icon.classList.remove('text-brand-600', 'fill-brand-600');
   }
   updateClearFilterButton();
-  resetCasePage();
   renderGrid();
   highlightQuickAction(showOnlyBookmarks ? 'bookmarks' : null);
 }
@@ -2477,7 +2577,6 @@ function clearSearchOnly() {
   searchTerm = '';
   document.getElementById('searchInput').value = '';
   updateClearFilterButton();
-  resetCasePage();
   renderGrid();
   highlightQuickAction();
 }
@@ -2488,7 +2587,6 @@ function resetToAllCases() {
   renderCategoryCards();
   renderChips();
   updateClearFilterButton();
-  resetCasePage();
   renderGrid();
   highlightQuickAction();
 }
@@ -2517,146 +2615,205 @@ function matchesFilters(c) {
 }
 
 
-function renderPagination(totalItems) {
-  const bar = document.getElementById('paginationBar');
-  const info = document.getElementById('pageInfo');
-  const badge = document.getElementById('pageNumberBadge');
-  const prev = document.getElementById('btnPrevPage');
-  const next = document.getElementById('btnNextPage');
-  if (!bar || !info || !badge || !prev || !next) return;
-
-  const totalPages = Math.max(1, Math.ceil(totalItems / CASES_PER_PAGE));
-  if (currentCasePage > totalPages) currentCasePage = totalPages;
-  if (currentCasePage < 1) currentCasePage = 1;
-
-  bar.classList.toggle('hidden', totalItems === 0);
-  info.textContent = `Page ${currentCasePage} / ${totalPages} · ${totalItems} case${totalItems === 1 ? '' : 's'}`;
-  badge.textContent = currentCasePage;
-  prev.disabled = currentCasePage <= 1;
-  next.disabled = currentCasePage >= totalPages;
+function hasFocusedCaseView() {
+  return selectedTypeFilter !== 'ALL' || showOnlyBookmarks || Boolean(searchTerm) ||
+    activeFilters.severity.size > 0 || activeFilters.section.size > 0 || activeFilters.classification.size > 0;
 }
 
-function changeCasePage(direction) {
-  const filtered = sortCases(ALL_CASES.filter(matchesFilters));
-  const totalPages = Math.max(1, Math.ceil(filtered.length / CASES_PER_PAGE));
-  currentCasePage = Math.min(totalPages, Math.max(1, currentCasePage + direction));
-  renderGrid();
-  const grid = document.getElementById('cardGrid');
-  if (grid) grid.scrollIntoView({ behavior: 'smooth', block: 'start' });
+function getSeverityPresentation(severity) {
+  if (severity === 'High') {
+    return { border: 'border-l-rose-500', badge: 'bg-rose-50 text-rose-700 border-rose-200', deck: 'deck-severity-high' };
+  }
+  if (severity === 'Medium') {
+    return { border: 'border-l-amber-500', badge: 'bg-amber-50 text-amber-700 border-amber-200', deck: 'deck-severity-medium' };
+  }
+  return { border: 'border-l-slate-400', badge: 'bg-slate-100 text-slate-700 border-slate-200', deck: 'deck-severity-low' };
 }
 
-function resetCasePage() {
-  currentCasePage = 1;
+function renderCaseViewHeader(focusMode, totalFiltered) {
+  const el = document.getElementById('caseViewHeader');
+  if (!el) return;
+
+  if (focusMode) {
+    el.innerHTML = `
+      <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+        <div class="flex items-start gap-3">
+          <div class="w-10 h-10 rounded-2xl bg-rose-50 text-rose-600 border border-rose-100 flex items-center justify-center">⌖</div>
+          <div>
+            <div class="flex items-center gap-2 flex-wrap">
+              <span class="view-mode-pill bg-rose-50 text-rose-700 border border-rose-100">Focus Mode</span>
+              <span class="text-xs text-slate-500">${totalFiltered} matching case${totalFiltered === 1 ? '' : 's'}</span>
+            </div>
+            <div class="mt-1 text-sm font-semibold text-slate-800">กำลังแสดงเฉพาะเคสที่ตรงกับสิ่งที่เลือก</div>
+            <div class="text-xs text-slate-500 mt-0.5">อ่าน Root Cause / Countermeasure ได้ชัดขึ้น และคลิกการ์ดเพื่อเปิดรายละเอียดทุก Report</div>
+          </div>
+        </div>
+        <button onclick="resetToAllCases(); focusCasesSection();" class="px-3.5 py-2 rounded-xl bg-slate-800 hover:bg-slate-900 text-white text-xs font-semibold">กลับ Overview Deck</button>
+      </div>`;
+  } else {
+    el.innerHTML = `
+      <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+        <div class="flex items-start gap-3">
+          <div class="w-10 h-10 rounded-2xl bg-slate-100 text-slate-700 border border-slate-200 flex items-center justify-center">▱</div>
+          <div>
+            <div class="flex items-center gap-2 flex-wrap">
+              <span class="view-mode-pill bg-slate-100 text-slate-700 border border-slate-200">Overview Deck</span>
+              <span class="text-xs text-slate-500">${totalFiltered} case${totalFiltered === 1 ? '' : 's'} in view</span>
+            </div>
+            <div class="mt-1 text-sm font-semibold text-slate-800">ภาพรวมแบบการ์ดซ้อน — เห็น Case ID และลูกค้าได้โดยไม่ต้องไล่อ่านกล่องยาว</div>
+            <div class="text-xs text-slate-500 mt-0.5">Hover เพื่อยกการ์ดขึ้น · คลิกการ์ดเพื่อเปิดเคสนั้น · ใช้ Filter/Search แล้วระบบจะเปลี่ยนเป็น Focus Mode อัตโนมัติ</div>
+          </div>
+        </div>
+        <div class="text-[11px] text-slate-500 bg-slate-50 border border-slate-200 rounded-xl px-3 py-2">Interactive · Auto Focus</div>
+      </div>`;
+  }
+}
+
+function renderDeckOverview(cases) {
+  const categoryOrder = ['Accident', 'Mistake', 'Wrong Input Data', 'Delay', 'Broken'];
+  const grouped = {};
+  cases.forEach(c => {
+    const key = c.type || 'Other';
+    if (!grouped[key]) grouped[key] = [];
+    grouped[key].push(c);
+  });
+
+  const keys = [
+    ...categoryOrder.filter(k => grouped[k]?.length),
+    ...Object.keys(grouped).filter(k => !categoryOrder.includes(k))
+  ];
+
+  return `<div class="deck-overview">${keys.map((key, groupIndex) => {
+    const groupCases = grouped[key];
+    const cat = CATEGORIES.find(x => x.id === key);
+    const label = cat ? cat.nameTh : key;
+    const icon = getTypeIcon(key);
+
+    return `
+      <section class="case-stack-group" aria-label="${key} cases">
+        <div class="flex items-center justify-between gap-3 mb-2.5">
+          <div>
+            <div class="text-xs font-mono font-bold uppercase tracking-wider text-slate-500">${key}</div>
+            <div class="text-sm font-bold text-slate-900 mt-0.5">${icon} ${label}</div>
+          </div>
+          <button onclick="focusFacet('type', '${escapeJsValue(key)}', event)" class="px-2.5 py-1 rounded-full bg-white border border-slate-200 text-[11px] font-mono font-bold text-slate-600 hover:text-brand-700 hover:border-brand-200 transition-colors">${groupCases.length} เคส</button>
+        </div>
+        <div class="case-stack-stage">
+          ${groupCases.map((c, index) => {
+            const sev = getSeverityPresentation(c.severity);
+            const delay = `${(groupIndex * 90 + index * 65) % 900}ms`;
+            return `
+              <article tabindex="0" role="button" onclick="openModal('${escapeJsValue(c.id)}')" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();openModal('${escapeJsValue(c.id)}')}" class="deck-case-card ${sev.deck}" style="z-index:${index + 1}; --deck-delay:${delay};" title="เปิดเคส ${c.id}">
+                <div class="flex items-start justify-between gap-2">
+                  <div class="min-w-0">
+                    <div class="flex items-center gap-2 min-w-0">
+                      <span class="text-[11px] font-mono font-bold text-brand-700 shrink-0">${c.id}</span>
+                      <span class="text-[10px] text-slate-400 truncate">${c.date || ''}</span>
+                    </div>
+                    <div class="text-sm font-bold text-slate-900 truncate mt-1">${c.customer}</div>
+                    <div class="text-[11px] text-slate-500 truncate mt-0.5">${c.section} · ${c.classification}</div>
+                  </div>
+                  <span class="px-2 py-0.5 text-[9px] font-mono font-bold uppercase rounded-full border ${sev.badge} shrink-0">${c.severity}</span>
+                </div>
+              </article>`;
+          }).join('')}
+        </div>
+      </section>`;
+  }).join('')}</div>`;
+}
+
+function renderFocusedCaseCard(c) {
+  const isBookmarked = bookmarkedIds.has(c.id);
+  const sev = getSeverityPresentation(c.severity);
+  const sectionSafe = escapeJsValue(c.section);
+  const typeSafe = escapeJsValue(c.type);
+  const classSafe = escapeJsValue(c.classification);
+  const reportBadges = [
+    c.full_first ? '<span class="px-2 py-1 rounded-full bg-slate-100 border border-slate-200 text-slate-600">1st</span>' : '',
+    c.full_second ? '<span class="px-2 py-1 rounded-full bg-brand-50 border border-brand-100 text-brand-700">2nd</span>' : '',
+    c.full_third ? '<span class="px-2 py-1 rounded-full bg-slate-100 border border-slate-200 text-slate-600">3rd</span>' : '',
+    c.overview ? '<span class="px-2 py-1 rounded-full bg-slate-100 border border-slate-200 text-slate-700">Overview</span>' : '',
+    c.full_final ? '<span class="px-2 py-1 rounded-full bg-emerald-50 border border-emerald-100 text-emerald-700">Final</span>' : '<span class="px-2 py-1 rounded-full bg-rose-50 border border-rose-100 text-rose-700">Pending Final</span>'
+  ].join('');
+
+  return `
+    <div onclick="openModal('${escapeJsValue(c.id)}')" class="bg-white rounded-3xl border border-slate-200/90 border-l-4 ${sev.border} shadow-sm minimal-card cursor-pointer flex flex-col justify-between overflow-hidden group">
+      <div class="p-4 sm:p-5 space-y-3 flex-1">
+        <div class="flex items-center justify-between gap-2">
+          <span class="text-xs font-mono font-bold text-slate-500 tracking-tight">${c.id} · ${c.date || 'No date'}</span>
+          <div class="flex items-center gap-1.5">
+            <span class="px-2 py-0.5 text-[10px] font-mono font-bold uppercase rounded-full border ${sev.badge}">${c.severity}</span>
+            <button onclick="toggleBookmark('${escapeJsValue(c.id)}', event)" class="p-1.5 hover:bg-slate-100 rounded-xl transition-colors" title="บันทึกรายการ">
+              <svg class="w-4 h-4 ${isBookmarked ? 'text-brand-600 fill-brand-600' : 'text-slate-300 hover:text-slate-400'}" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11.049 2.927c.3-.921 1.603-.921 1.902 0l1.519 4.674a1 1 0 00.95.69h4.915c.969 0 1.371 1.24.588 1.81l-3.976 2.888a1 1 0 00-.363 1.118l1.518 4.674c.3.922-.755 1.688-1.538 1.118l-3.976-2.888a1 1 0 00-1.176 0l-3.976 2.888c-.783.57-1.838-.197-1.538-1.118l1.518-4.674a1 1 0 00-.363-1.118l-3.976-2.888c-.784-.57-.38-1.81.588-1.81h4.914a1 1 0 00.951-.69l1.519-4.674z"/></svg>
+            </button>
+          </div>
+        </div>
+
+        <div>
+          <h3 class="text-lg font-bold text-slate-900 group-hover:text-brand-600 transition-colors clamp-2 leading-snug">${c.customer}</h3>
+          <p class="text-xs text-slate-500 mt-1">${c.area || 'Area not specified'}</p>
+        </div>
+
+        <div class="flex flex-wrap gap-2 text-xs">
+          <button onclick="focusFacet('section', '${sectionSafe}', event)" class="insight-pill px-2.5 py-1 rounded-full text-slate-700 hover:border-brand-200">${c.section}</button>
+          <button onclick="focusFacet('type', '${typeSafe}', event)" class="insight-pill px-2.5 py-1 rounded-full text-slate-700 hover:border-brand-200">${getTypeIcon(c.type)} ${c.type}</button>
+          <button onclick="focusFacet('classification', '${classSafe}', event)" class="insight-pill px-2.5 py-1 rounded-full text-slate-700 hover:border-brand-200">${c.classification}</button>
+        </div>
+
+        <div class="grid gap-2 pt-1">
+          ${c.overview ? `<div class="rounded-2xl border border-slate-200 bg-slate-50 p-3"><div class="text-[10px] font-mono font-bold uppercase tracking-wider text-slate-600 mb-1">Overview</div><p class="text-sm text-slate-700 line-clamp-3 leading-relaxed">${c.overview}</p></div>` : ''}
+          <div class="rounded-2xl border border-rose-100 bg-rose-50/60 p-3"><div class="text-[10px] font-mono font-bold uppercase tracking-wider text-rose-700 mb-1">Root Cause</div><p class="text-sm text-slate-700 line-clamp-2 leading-relaxed">${c.cause}</p></div>
+          <div class="rounded-2xl border border-emerald-100 bg-emerald-50/60 p-3"><div class="text-[10px] font-mono font-bold uppercase tracking-wider text-emerald-700 mb-1">Countermeasure</div><p class="text-sm text-slate-700 line-clamp-2 leading-relaxed">${c.prevention}</p></div>
+        </div>
+      </div>
+      <div class="px-4 sm:px-5 py-3 bg-slate-50 border-t border-slate-100 space-y-2">
+        <div class="flex flex-wrap gap-1.5 text-[10px] font-mono font-semibold">${reportBadges}</div>
+        <div class="flex items-center justify-between text-xs font-medium text-slate-500">
+          <span class="truncate max-w-[190px]">${c.note || 'Open case for learning'}</span>
+          <span class="text-brand-600 font-bold group-hover:translate-x-1 transition-transform flex items-center gap-0.5">ศึกษาเคส <span>→</span></span>
+        </div>
+      </div>
+    </div>`;
 }
 
 function renderGrid() {
   let filtered = ALL_CASES.filter(matchesFilters);
   filtered = sortCases(filtered);
   const totalFiltered = filtered.length;
-  const visibleCases = filtered;
+  const focusMode = hasFocusedCaseView();
 
   const grid = document.getElementById('cardGrid');
   renderHeroStats(filtered);
   renderActiveContext();
   renderDatasetStatus();
-  const paginationBar = document.getElementById('paginationBar');
-  if (paginationBar) paginationBar.classList.add('hidden');
+  renderCaseViewHeader(focusMode, totalFiltered);
+
   const modeText = csvHasBeenImported
-    ? `แสดงทั้งหมด <strong>${totalFiltered}</strong> เคสจาก CSV`
+    ? `${focusMode ? 'Focus' : 'Overview'} <strong>${totalFiltered}</strong> เคสจาก CSV`
     : `Preview <strong>${totalFiltered}</strong> เคส · กรุณา Upload CSV ก่อนใช้งานข้อมูลจริง`;
   document.getElementById('resultCount').innerHTML = `${modeText} <span class="text-slate-400">· sorted by <strong class="text-slate-600">${currentSort}</strong></span>`;
 
   if (filtered.length === 0) {
+    grid.className = 'w-full';
     grid.innerHTML = `
-      <div class="col-span-full py-12 text-center bg-white rounded-3xl border border-dashed border-slate-300 space-y-3">
+      <div class="py-12 text-center bg-white rounded-3xl border border-dashed border-slate-300 space-y-3">
         <div class="text-4xl">🔍</div>
         <div class="text-slate-700 font-semibold">ไม่พบบทเรียนที่ตรงกับตัวกรองที่ระบุ</div>
-        <div class="text-xs text-slate-500">ลองเปลี่ยนคำค้นหา ตัวกรอง หรือกดปุ่มแสดงเคสทั้งหมด</div>
-        <button onclick="resetToAllCases()" class="px-4 py-2 bg-brand-600 text-white text-xs font-semibold rounded-xl hover:bg-brand-700 transition-colors shadow-2xs">
-          แสดงเคสทั้งหมด
-        </button>
-      </div>
-    `;
+        <div class="text-xs text-slate-500">ลองเปลี่ยนคำค้นหา ตัวกรอง หรือกดปุ่มกลับ Overview Deck</div>
+        <button onclick="resetToAllCases()" class="px-4 py-2 bg-brand-600 text-white text-xs font-semibold rounded-xl hover:bg-brand-700 transition-colors shadow-2xs">กลับ Overview Deck</button>
+      </div>`;
     return;
   }
 
-  grid.innerHTML = visibleCases.map(c => {
-    const isBookmarked = bookmarkedIds.has(c.id);
-    let sevBorder = 'border-l-emerald-500';
-    let sevBadge = 'bg-emerald-50 text-emerald-700 border-emerald-200';
-    if (c.severity === 'High') {
-      sevBorder = 'border-l-rose-500';
-      sevBadge = 'bg-rose-50 text-rose-700 border-rose-200';
-    } else if (c.severity === 'Medium') {
-      sevBorder = 'border-l-amber-500';
-      sevBadge = 'bg-amber-50 text-amber-700 border-amber-200';
-    }
-
-    const sectionSafe = escapeJsValue(c.section);
-    const typeSafe = escapeJsValue(c.type);
-    const classSafe = escapeJsValue(c.classification);
-    const reportBadges = [
-      c.full_first ? '<span class="px-2 py-1 rounded-full bg-slate-100 border border-slate-200 text-slate-600">1st</span>' : '',
-      c.full_second ? '<span class="px-2 py-1 rounded-full bg-brand-50 border border-brand-100 text-brand-700">2nd</span>' : '',
-      c.full_third ? '<span class="px-2 py-1 rounded-full bg-sky-50 border border-sky-100 text-sky-700">3rd</span>' : '',
-      c.overview ? '<span class="px-2 py-1 rounded-full bg-cyan-50 border border-cyan-100 text-cyan-700">Overview</span>' : '',
-      c.full_final ? '<span class="px-2 py-1 rounded-full bg-emerald-50 border border-emerald-100 text-emerald-700">Final</span>' : '<span class="px-2 py-1 rounded-full bg-amber-50 border border-amber-100 text-amber-700">Pending Final</span>'
-    ].join('');
-
-    return `
-      <div onclick="openModal('${c.id}')" class="bg-white rounded-3xl border border-slate-200/90 border-l-4 ${sevBorder} shadow-sm minimal-card cursor-pointer flex flex-col justify-between overflow-hidden group">
-        <div class="p-4 sm:p-5 space-y-3 flex-1">
-          <div class="flex items-center justify-between gap-2">
-            <span class="text-xs font-mono font-bold text-slate-500 tracking-tight">${c.id} · ${c.date || 'No date'}</span>
-            <div class="flex items-center gap-1.5">
-              <span class="px-2 py-0.5 text-[10px] font-mono font-bold uppercase rounded-full border ${sevBadge}">${c.severity}</span>
-              <button onclick="toggleBookmark('${c.id}', event)" class="p-1.5 hover:bg-slate-100 rounded-xl transition-colors" title="บันทึกรายการ">
-                <svg class="w-4 h-4 ${isBookmarked ? 'text-brand-600 fill-brand-600' : 'text-slate-300 hover:text-slate-400'}" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11.049 2.927c.3-.921 1.603-.921 1.902 0l1.519 4.674a1 1 0 00.95.69h4.915c.969 0 1.371 1.24.588 1.81l-3.976 2.888a1 1 0 00-.363 1.118l1.518 4.674c.3.922-.755 1.688-1.538 1.118l-3.976-2.888a1 1 0 00-1.176 0l-3.976 2.888c-.783.57-1.838-.197-1.538-1.118l1.518-4.674a1 1 0 00-.363-1.118l-3.976-2.888c-.784-.57-.38-1.81.588-1.81h4.914a1 1 0 00.951-.69l1.519-4.674z"/>
-                </svg>
-              </button>
-            </div>
-          </div>
-
-          <div>
-            <h3 class="text-lg font-bold text-slate-900 group-hover:text-brand-600 transition-colors clamp-2 leading-snug">${c.customer}</h3>
-            <p class="text-xs text-slate-500 mt-1">${c.area || 'Area not specified'}</p>
-          </div>
-
-          <div class="flex flex-wrap gap-2 text-xs">
-            <button onclick="focusFacet('section', '${sectionSafe}', event)" class="insight-pill px-2.5 py-1 rounded-full text-slate-700 hover:border-brand-200">${c.section}</button>
-            <button onclick="focusFacet('type', '${typeSafe}', event)" class="insight-pill px-2.5 py-1 rounded-full text-slate-700 hover:border-brand-200">${getTypeIcon(c.type)} ${c.type}</button>
-            <button onclick="focusFacet('classification', '${classSafe}', event)" class="insight-pill px-2.5 py-1 rounded-full text-slate-700 hover:border-brand-200">${c.classification}</button>
-          </div>
-
-          <div class="grid gap-2 pt-1">
-            ${c.overview ? `
-            <div class="rounded-2xl border border-cyan-100 bg-cyan-50/70 p-3">
-              <div class="text-[10px] font-mono font-bold uppercase tracking-wider text-cyan-700 mb-1">Overview</div>
-              <p class="text-sm text-slate-700 line-clamp-3 leading-relaxed">${c.overview}</p>
-            </div>` : ''}
-            <div class="rounded-2xl border border-rose-100 bg-rose-50/60 p-3">
-              <div class="text-[10px] font-mono font-bold uppercase tracking-wider text-rose-700 mb-1">Root Cause</div>
-              <p class="text-sm text-slate-700 line-clamp-2 leading-relaxed">${c.cause}</p>
-            </div>
-            <div class="rounded-2xl border border-emerald-100 bg-emerald-50/60 p-3">
-              <div class="text-[10px] font-mono font-bold uppercase tracking-wider text-emerald-700 mb-1">Countermeasure</div>
-              <p class="text-sm text-slate-700 line-clamp-2 leading-relaxed">${c.prevention}</p>
-            </div>
-          </div>
-        </div>
-
-        <div class="px-4 sm:px-5 py-3 bg-slate-50 border-t border-slate-100 space-y-2">
-          <div class="flex flex-wrap gap-1.5 text-[10px] font-mono font-semibold">${reportBadges}</div>
-          <div class="flex items-center justify-between text-xs font-medium text-slate-500">
-            <span class="truncate max-w-[190px]">${c.note || 'Open case for learning'}</span>
-            <span class="text-brand-600 font-bold group-hover:translate-x-1 transition-transform flex items-center gap-0.5">ศึกษาเคส <span>→</span></span>
-          </div>
-        </div>
-      </div>
-    `;
-  }).join('');
+  if (focusMode) {
+    grid.className = 'focused-case-grid w-full';
+    grid.innerHTML = filtered.map(renderFocusedCaseCard).join('');
+  } else {
+    grid.className = 'w-full';
+    grid.innerHTML = renderDeckOverview(filtered);
+  }
 }
+
 
 function openQuizModal() {
   currentQuizIndex = 0;
@@ -3157,14 +3314,12 @@ document.getElementById('csvFileInput').addEventListener('change', (e) => {
 document.getElementById('searchInput').addEventListener('input', (e) => {
   searchTerm = e.target.value.trim();
   updateClearFilterButton();
-  resetCasePage();
   renderGrid();
   highlightQuickAction();
 });
 
 document.getElementById('sortSelect').addEventListener('change', (e) => {
   currentSort = e.target.value;
-  resetCasePage();
   renderGrid();
 });
 
