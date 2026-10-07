@@ -1,717 +1,2076 @@
 <!DOCTYPE html>
-<html lang="th">
+<html lang="th" class="h-full bg-slate-50">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>BPI Knowledge Hub | คลังบทเรียนอุบัติเหตุ & Non-Conformity</title>
-    
-    <!-- Tailwind CSS -->
-    <script src="https://cdn.tailwindcss.com"></script>
-    
-    <!-- PapaParse for CSV -->
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.3.2/papaparse.min.js"></script>
-    
-    <!-- Chart.js for Analytics -->
-    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>BPI Case Library | คลังบทเรียนอุบัติเหตุ &amp; Non-Conformity</title>
+<!-- Tailwind CSS CDN -->
+<script src="https://cdn.tailwindcss.com"></script>
+<!-- PapaParse for CSV parsing -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.4.1/papaparse.min.js"></script>
+<!-- PDF export (Thai-friendly via HTML canvas) -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<!-- Google Fonts -->
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500;600;700&family=Sarabun:ital,wght@0,300;0,400;0,500;0,600;0,700;1,400&display=swap" rel="stylesheet">
 
-    <!-- Google Fonts -->
-    <link href="https://fonts.googleapis.com/css2?family=Sarabun:wght@300;400;500;600;700&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
-
-    <script>
-        tailwind.config = {
-            theme: {
-                extend: {
-                    fontFamily: {
-                        sans: ['Sarabun', 'Inter', 'sans-serif'],
-                    },
-                    colors: {
-                        brand: {
-                            50: '#f0f9ff',
-                            100: '#e0f2fe',
-                            500: '#0ea5e9', // Sky Blue
-                            600: '#0284c7',
-                            900: '#0c4a6e',
-                        },
-                        success: {
-                            500: '#10b981', // Emerald Green
-                            600: '#059669',
-                        }
-                    }
-                }
-            }
+<script>
+  tailwind.config = {
+    darkMode: 'class',
+    theme: {
+      extend: {
+        fontFamily: {
+          sans: ['Sarabun', 'Inter', 'sans-serif'],
+          mono: ['JetBrains Mono', 'monospace'],
+        },
+        colors: {
+          brand: {
+            50: '#fef2f2',
+            100: '#fee2e2',
+            200: '#fecaca',
+            300: '#fca5a5',
+            400: '#f87171',
+            500: '#ef4444',
+            600: '#dc2626',
+            700: '#b91c1c',
+            800: '#991b1b',
+            900: '#7f1d1d',
+          }
+        },
+        keyframes: {
+          fadeIn: {
+            '0%': { opacity: '0', transform: 'translateY(8px)' },
+            '100%': { opacity: '1', transform: 'translateY(0)' },
+          },
+          floatCard: {
+            '0%, 100%': { transform: 'translateY(0px)' },
+            '50%': { transform: 'translateY(-3px)' },
+          }
+        },
+        animation: {
+          fadeIn: 'fadeIn 0.25s cubic-bezier(0.16, 1, 0.3, 1) forwards',
+          floatCard: 'floatCard 3s ease-in-out infinite',
         }
-    </script>
+      }
+    }
+  }
+</script>
 
-    <style>
-        body { font-family: 'Sarabun', sans-serif; background-color: #f8fafc; }
-        .glass-panel {
-            background: rgba(255, 255, 255, 0.95);
-            backdrop-filter: blur(10px);
-            border: 1px solid rgba(226, 232, 240, 0.8);
-        }
-        .card-hover { transition: all 0.3s ease; }
-        .card-hover:hover { transform: translateY(-4px); box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.1), 0 8px 10px -6px rgba(0, 0, 0, 0.1); }
-        
-        /* Custom Scrollbar */
-        ::-webkit-scrollbar { width: 6px; height: 6px; }
-        ::-webkit-scrollbar-track { background: #f1f5f9; }
-        ::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 4px; }
-        ::-webkit-scrollbar-thumb:hover { background: #94a3b8; }
+<style>
+  ::-webkit-scrollbar { width: 8px; height: 8px; }
+  ::-webkit-scrollbar-track { background: #f8fafc; }
+  ::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 999px; }
+  ::-webkit-scrollbar-thumb:hover { background: #94a3b8; }
 
-        .line-clamp-2 {
-            display: -webkit-box;
-            -webkit-line-clamp: 2;
-            -webkit-box-orient: vertical;
-            overflow: hidden;
-        }
-        
-        /* Animation */
-        @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
-        .animate-fade-in { animation: fadeIn 0.4s ease-out forwards; }
-    </style>
+  .clamp-2, .line-clamp-2 { display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+  .clamp-3, .line-clamp-3 { display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden; }
+
+  .glass-header {
+    background: rgba(255, 255, 255, 0.92);
+    backdrop-filter: blur(14px);
+  }
+
+  .minimal-card, .category-card, .quick-link, .kpi-card, .soft-card {
+    transition: all 0.22s cubic-bezier(0.16, 1, 0.3, 1);
+  }
+  .minimal-card:hover, .category-card:hover, .quick-link:hover, .kpi-card:hover, .soft-card:hover {
+    transform: translateY(-4px);
+  }
+  .minimal-card:hover {
+    box-shadow: 0 22px 40px -24px rgba(220, 38, 38, 0.24), 0 8px 20px -12px rgba(15, 23, 42, 0.12);
+  }
+
+  .hero-surface {
+    background:
+      radial-gradient(circle at top right, rgba(220,38,38,0.14), transparent 28%),
+      radial-gradient(circle at left bottom, rgba(100,116,139,0.12), transparent 24%),
+      linear-gradient(135deg, rgba(255,255,255,0.98), rgba(248,250,252,0.94));
+  }
+
+  .soft-card {
+    background: linear-gradient(180deg, rgba(255,255,255,0.96), rgba(248,250,252,0.92));
+    border: 1px solid rgba(226,232,240,0.95);
+    box-shadow: 0 10px 30px -24px rgba(15, 23, 42, 0.16);
+  }
+
+  .kpi-card.active-kpi {
+    border-color: rgba(220,38,38,0.24);
+    box-shadow: 0 18px 40px -28px rgba(220,38,38,0.24);
+  }
+
+  .quick-link.active,
+  .nav-pill.active {
+    background: linear-gradient(90deg, rgba(220,38,38,1), rgba(71,85,105,0.96));
+    color: white;
+    border-color: transparent;
+    box-shadow: 0 12px 28px -18px rgba(220,38,38,0.34);
+  }
+
+  .insight-pill {
+    background: rgba(255,255,255,0.82);
+    border: 1px solid rgba(226,232,240,0.9);
+    backdrop-filter: blur(8px);
+  }
+
+  .red-gray-accent {
+    background: linear-gradient(135deg, rgba(254,242,242,0.94), rgba(248,250,252,0.98));
+    border: 1px solid rgba(203,213,225,0.9);
+  }
+
+
+  /* Interactive Case Deck ------------------------------------------------ */
+  .case-view-shell {
+    position: relative;
+  }
+
+  .deck-overview {
+    display: grid;
+    grid-template-columns: repeat(1, minmax(0, 1fr));
+    gap: 1rem;
+    align-items: start;
+  }
+
+  @media (min-width: 768px) {
+    .deck-overview { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  }
+
+  @media (min-width: 1180px) {
+    .deck-overview { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+  }
+
+  .case-stack-group {
+    border: 1px solid rgba(203,213,225,0.86);
+    background: linear-gradient(180deg, rgba(255,255,255,0.98), rgba(248,250,252,0.94));
+    border-radius: 1.5rem;
+    padding: 1rem;
+    overflow: visible;
+    box-shadow: 0 18px 38px -30px rgba(15,23,42,0.35);
+  }
+
+  .case-stack-stage {
+    position: relative;
+    padding: .35rem .15rem .2rem;
+    perspective: 1100px;
+  }
+
+  .deck-case-card {
+    position: relative;
+    min-height: 92px;
+    border-radius: 1.15rem;
+    border: 1px solid rgba(203,213,225,0.92);
+    background: rgba(255,255,255,0.97);
+    box-shadow: 0 14px 28px -24px rgba(15,23,42,0.6);
+    padding: .8rem .9rem;
+    cursor: pointer;
+    transform-origin: 50% 100%;
+    transition: transform .28s cubic-bezier(.16,1,.3,1), box-shadow .28s ease, border-color .28s ease, background .28s ease;
+    animation: deckFloat 4.8s ease-in-out infinite;
+    animation-delay: var(--deck-delay, 0ms);
+  }
+
+  .deck-case-card + .deck-case-card {
+    margin-top: -31px;
+  }
+
+  .deck-case-card:nth-child(3n+1) { transform: rotate(-.35deg); }
+  .deck-case-card:nth-child(3n+2) { transform: rotate(.3deg); }
+  .deck-case-card:nth-child(3n) { transform: rotate(-.15deg); }
+
+  .deck-case-card:hover,
+  .deck-case-card:focus-visible {
+    z-index: 50 !important;
+    transform: translateY(-8px) translateX(5px) rotate(0deg) scale(1.018);
+    border-color: rgba(220,38,38,0.40);
+    background: #fff;
+    box-shadow: 0 26px 48px -24px rgba(220,38,38,0.28), 0 14px 28px -22px rgba(15,23,42,0.42);
+    outline: none;
+  }
+
+  .deck-case-card::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    border-radius: inherit;
+    pointer-events: none;
+    background: linear-gradient(115deg, transparent 0%, rgba(255,255,255,.56) 45%, transparent 62%);
+    transform: translateX(-115%);
+    transition: transform .65s ease;
+  }
+
+  .deck-case-card:hover::after { transform: translateX(115%); }
+
+  .deck-severity-high { border-left: 4px solid #dc2626; }
+  .deck-severity-medium { border-left: 4px solid #f59e0b; }
+  .deck-severity-low { border-left: 4px solid #64748b; }
+
+  .focused-case-grid {
+    display: grid;
+    grid-template-columns: repeat(1, minmax(0, 1fr));
+    gap: 1rem;
+  }
+  @media (min-width: 768px) {
+    .focused-case-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  }
+  @media (min-width: 1180px) {
+    .focused-case-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+  }
+
+  .view-mode-pill {
+    display: inline-flex;
+    align-items: center;
+    gap: .45rem;
+    border-radius: 999px;
+    padding: .38rem .72rem;
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: .02em;
+  }
+
+  @keyframes deckFloat {
+    0%, 100% { translate: 0 0; }
+    50% { translate: 0 -2px; }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .deck-case-card { animation: none !important; transition-duration: .01ms !important; }
+    html { scroll-behavior: auto !important; }
+  }
+
+  .pagination-btn:disabled {
+    opacity: 0.38;
+    cursor: not-allowed;
+    transform: none !important;
+  }
+
+  .overview-compare {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+    border: 1px solid #e2e8f0;
+    border-radius: 18px;
+    overflow: hidden;
+    background: white;
+  }
+  .overview-lang-cell { min-width: 0; }
+  .overview-lang-cell + .overview-lang-cell { border-left: 1px solid #e2e8f0; }
+  .overview-lang-head {
+    display: flex; align-items: center; justify-content: space-between; gap: 8px;
+    padding: 10px 14px; background: #f8fafc; border-bottom: 1px solid #e2e8f0;
+    font-size: 11px; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; color: #475569;
+  }
+  .overview-lang-body { padding: 14px; font-size: 13px; line-height: 1.7; color: #334155; white-space: pre-line; }
+  .overview-compact .overview-lang-body { max-height: 150px; overflow: hidden; position: relative; }
+  .overview-compact .overview-lang-body::after { content: ''; position:absolute; left:0; right:0; bottom:0; height:34px; background:linear-gradient(to bottom, transparent, white); pointer-events:none; }
+  @media (max-width: 767px) {
+    .overview-compare { grid-template-columns: 1fr; }
+    .overview-lang-cell + .overview-lang-cell { border-left: 0; border-top: 1px solid #e2e8f0; }
+  }
+
+  @media print {
+    body * { visibility: hidden; }
+    #printableArea, #printableArea * { visibility: visible; }
+    #printableArea { position: absolute; left: 0; top: 0; width: 100%; }
+  }
+</style>
 </head>
-<body class="text-slate-600 antialiased min-h-screen flex flex-col">
+<body class="font-sans text-slate-800 bg-gradient-to-br from-slate-50 via-red-50/30 to-slate-100 min-h-screen flex flex-col antialiased selection:bg-brand-600 selection:text-white">
 
-    <!-- Navbar -->
-    <nav class="sticky top-0 z-40 glass-panel border-b border-slate-200 shadow-sm">
-        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-            <div class="flex justify-between h-16 items-center">
-                <div class="flex items-center gap-3 cursor-pointer" onclick="resetFilters()">
-                    <div class="bg-brand-600 text-white p-2 rounded-lg">
-                        <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19.428 15.428a2 2 0 00-1.022-.547l-2.384-.477a6 6 0 00-3.86.517l-.318.158a6 6 0 01-3.86.517L6.05 15.21a2 2 0 00-1.806.547M8 4h8l-1 1v5.172a2 2 0 00.586 1.414l5 5c1.26 1.26.367 3.414-1.415 3.414H4.828c-1.782 0-2.674-2.154-1.414-3.414l5-5A2 2 0 009 10.172V5L8 4z" />
-                        </svg>
-                    </div>
-                    <div>
-                        <h1 class="text-xl font-bold text-slate-800 tracking-tight">BPI Knowledge Hub</h1>
-                        <p class="text-xs text-slate-500">Safety & Compliance Learning Center</p>
-                    </div>
-                </div>
-                
-                <div class="flex items-center gap-3">
-                    <label for="csvInput" class="cursor-pointer bg-white border border-slate-300 hover:bg-slate-50 text-slate-700 px-4 py-2 rounded-lg text-sm font-medium transition shadow-sm flex items-center gap-2">
-                        <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12" /></svg>
-                        Update Data (CSV)
-                    </label>
-                    <input type="file" id="csvInput" accept=".csv" class="hidden" onchange="handleFileUpload(this)">
-                    
-                    <button onclick="toggleDashboard()" class="bg-brand-600 hover:bg-brand-700 text-white px-4 py-2 rounded-lg text-sm font-medium transition shadow-md shadow-brand-500/20 flex items-center gap-2">
-                        <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 002 2h2a2 2 0 002-2z" /></svg>
-                        Analytics
-                    </button>
-                </div>
-            </div>
+<header class="glass-header border-b border-slate-200 sticky top-0 z-30 transition-all shadow-sm">
+  <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-3">
+    <div class="flex flex-col md:flex-row md:items-center md:justify-between gap-3">
+      
+      <!-- Logo & Main Title -->
+      <div class="flex items-center space-x-3 cursor-pointer group" onclick="resetToAllCases()">
+        <div class="w-11 h-11 rounded-xl bg-gradient-to-tr from-brand-700 to-brand-500 text-white font-mono font-bold flex items-center justify-center text-xl shadow-md group-hover:scale-105 transition-transform tracking-wider">
+          BPI
         </div>
-    </nav>
-
-    <!-- Main Content -->
-    <main class="flex-grow max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 w-full">
-        
-        <!-- Search & Filter Bar -->
-        <div class="bg-white rounded-xl shadow-sm border border-slate-200 p-4 mb-8 animate-fade-in">
-            <div class="flex flex-col md:flex-row gap-4 justify-between items-center">
-                <div class="relative w-full md:w-96">
-                    <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                        <svg class="h-5 w-5 text-slate-400" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor">
-                            <path fill-rule="evenodd" d="M8 4a4 4 0 100 8 4 4 0 000-8zM2 8a6 6 0 1110.89 3.476l4.817 4.817a1 1 0 01-1.414 1.414l-4.816-4.816A6 6 0 012 8z" clip-rule="evenodd" />
-                        </svg>
-                    </div>
-                    <input type="text" id="searchInput" placeholder="ค้นหาเคส, ลูกค้า, หรือสาเหตุ..." class="block w-full pl-10 pr-3 py-2.5 border border-slate-300 rounded-lg leading-5 bg-slate-50 placeholder-slate-400 focus:outline-none focus:bg-white focus:ring-2 focus:ring-brand-500 focus:border-brand-500 sm:text-sm transition duration-150 ease-in-out">
-                </div>
-                
-                <div class="flex gap-2 overflow-x-auto pb-2 md:pb-0 w-full md:w-auto no-scrollbar" id="categoryFilters">
-                    <!-- Categories injected by JS -->
-                </div>
-            </div>
-            
-            <!-- Secondary Filters -->
-            <div class="mt-4 pt-4 border-t border-slate-100 flex flex-wrap gap-2 text-sm" id="secondaryFilters">
-                <span class="text-slate-500 mr-2 font-medium self-center">Filter by:</span>
-                <!-- Severity Chips -->
-                <button onclick="filterBy('severity', 'High')" class="filter-chip px-3 py-1 rounded-full border border-slate-200 bg-slate-50 hover:bg-red-50 hover:text-red-600 hover:border-red-200 transition" data-type="severity" data-val="High">High Severity</button>
-                <button onclick="filterBy('severity', 'Medium')" class="filter-chip px-3 py-1 rounded-full border border-slate-200 bg-slate-50 hover:bg-amber-50 hover:text-amber-600 hover:border-amber-200 transition" data-type="severity" data-val="Medium">Medium Severity</button>
-                <button onclick="filterBy('severity', 'Low')" class="filter-chip px-3 py-1 rounded-full border border-slate-200 bg-slate-50 hover:bg-emerald-50 hover:text-emerald-600 hover:border-emerald-200 transition" data-type="severity" data-val="Low">Low Severity</button>
-            </div>
+        <div>
+          <div class="flex items-center gap-2">
+            <span class="text-[10px] font-mono tracking-widest text-brand-700 uppercase font-bold bg-brand-50 px-2.5 py-0.5 rounded-full border border-brand-200">Learning &amp; Insight Hub</span>
+            <span class="inline-block w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
+          </div>
+          <h1 class="text-lg sm:text-xl font-bold tracking-tight text-slate-900 group-hover:text-brand-600 transition-colors">
+            BPI Learning Library <span class="text-slate-500 font-normal text-xs sm:text-sm">| คลังเรียนรู้สาเหตุ บทเรียน และแนวทางป้องกัน</span>
+          </h1>
         </div>
+      </div>
 
-        <!-- Stats Overview (Mini) -->
-        <div class="grid grid-cols-1 md:grid-cols-4 gap-4 mb-8 animate-fade-in" style="animation-delay: 0.1s;">
-            <div class="bg-white p-4 rounded-xl border border-slate-200 shadow-sm flex items-center justify-between">
-                <div>
-                    <p class="text-xs text-slate-500 uppercase font-semibold">Total Cases</p>
-                    <h3 class="text-2xl font-bold text-slate-800" id="statTotal">0</h3>
-                </div>
-                <div class="p-2 bg-brand-50 rounded-lg text-brand-600">
-                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"/></svg>
-                </div>
-            </div>
-            <div class="bg-white p-4 rounded-xl border border-slate-200 shadow-sm flex items-center justify-between">
-                <div>
-                    <p class="text-xs text-slate-500 uppercase font-semibold">Accidents</p>
-                    <h3 class="text-2xl font-bold text-red-600" id="statAccident">0</h3>
-                </div>
-                <div class="p-2 bg-red-50 rounded-lg text-red-600">
-                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/></svg>
-                </div>
-            </div>
-            <div class="bg-white p-4 rounded-xl border border-slate-200 shadow-sm flex items-center justify-between">
-                <div>
-                    <p class="text-xs text-slate-500 uppercase font-semibold">Mistakes</p>
-                    <h3 class="text-2xl font-bold text-amber-600" id="statMistake">0</h3>
-                </div>
-                <div class="p-2 bg-amber-50 rounded-lg text-amber-600">
-                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
-                </div>
-            </div>
-             <div class="bg-white p-4 rounded-xl border border-slate-200 shadow-sm flex items-center justify-between">
-                <div>
-                    <p class="text-xs text-slate-500 uppercase font-semibold">Compliance</p>
-                    <h3 class="text-2xl font-bold text-emerald-600" id="statCompliance">0</h3>
-                </div>
-                <div class="p-2 bg-emerald-50 rounded-lg text-emerald-600">
-                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
-                </div>
-            </div>
+      <!-- Primary Navigation: user-first access -->
+      <div class="flex flex-wrap items-center gap-2">
+        <button onclick="focusCasesSection()" class="flex items-center gap-1.5 px-3 py-2 bg-white hover:bg-slate-50 text-slate-700 rounded-xl text-xs font-semibold border border-slate-200 transition-colors">📚 <span>Cases</span></button>
+        <button onclick="scrollToSection('smartFilterPanel'); setTimeout(()=>document.getElementById('searchInput')?.focus(),350)" class="flex items-center gap-1.5 px-3 py-2 bg-white hover:bg-slate-50 text-slate-700 rounded-xl text-xs font-semibold border border-slate-200 transition-colors">🔎 <span>Search</span></button>
+        <button onclick="toggleAnalyticsModal()" class="flex items-center gap-1.5 px-3 py-2 bg-white hover:bg-slate-50 text-slate-700 rounded-xl text-xs font-semibold border border-slate-200 transition-colors">📊 <span class="hidden sm:inline">Analytics</span></button>
+        <button onclick="openQuizModal()" class="flex items-center gap-1.5 px-3 py-2 bg-white hover:bg-slate-50 text-slate-700 rounded-xl text-xs font-semibold border border-slate-200 transition-colors">🎯 <span class="hidden sm:inline">Quiz</span></button>
+        <button id="btnImport" class="flex items-center gap-2 px-4 py-2.5 bg-gradient-to-r from-brand-600 to-rose-600 hover:from-brand-700 hover:to-rose-700 border border-brand-500 text-white font-bold rounded-xl text-xs transition-all shadow-md hover:shadow-lg hover:-translate-y-0.5 ring-2 ring-rose-100">
+          <span class="w-7 h-7 rounded-lg bg-white/20 flex items-center justify-center">📥</span>
+          <span>Upload CSV</span>
+        </button>
+        <input type="file" id="csvFileInput" accept=".csv" class="hidden">
+      </div>
+
+    </div>
+  </div>
+</header>
+
+<section class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-5 w-full" id="hubOverview">
+  <div class="hero-surface rounded-3xl border border-slate-200/90 shadow-sm p-5 sm:p-6">
+    <div class="flex flex-col xl:flex-row xl:items-center xl:justify-between gap-5">
+      <div class="max-w-3xl">
+        <div class="flex flex-wrap items-center gap-2 mb-2">
+          <span class="px-3 py-1 rounded-full text-[11px] font-mono font-bold uppercase tracking-wider bg-rose-50 text-rose-700 border border-rose-100">BPI Learning Hub</span>
+          <span class="px-3 py-1 rounded-full text-[11px] font-mono font-bold uppercase tracking-wider bg-slate-100 text-slate-700 border border-slate-200">TH + EN Overview</span>
         </div>
-
-        <!-- Case Grid -->
-        <div id="caseGrid" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 animate-fade-in" style="animation-delay: 0.2s;">
-            <!-- Cards will be injected here -->
-        </div>
-        
-        <!-- Empty State -->
-        <div id="emptyState" class="hidden text-center py-20">
-            <div class="inline-block p-4 rounded-full bg-slate-100 mb-4">
-                <svg class="w-10 h-10 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9.172 16.172a4 4 0 015.656 0M9 10h.01M15 10h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
-            </div>
-            <h3 class="text-lg font-medium text-slate-900">ไม่พบข้อมูลที่ค้นหา</h3>
-            <p class="text-slate-500">ลองเปลี่ยนคำค้นหาหรือตัวกรอง</p>
-        </div>
-
-    </main>
-
-    <!-- Footer -->
-    <footer class="bg-white border-t border-slate-200 mt-auto">
-        <div class="max-w-7xl mx-auto px-4 py-6 sm:px-6 lg:px-8 flex justify-between items-center">
-            <p class="text-sm text-slate-500">&copy; 2026 BPI Safety & Quality Division. All rights reserved.</p>
-            <div class="flex gap-4 text-sm text-slate-400">
-                <span>v2.0 Minimal Design</span>
-            </div>
-        </div>
-    </footer>
-
-    <!-- Detail Modal -->
-    <div id="detailModal" class="fixed inset-0 z-50 hidden overflow-y-auto" aria-labelledby="modal-title" role="dialog" aria-modal="true">
-        <div class="flex items-end justify-center min-h-screen pt-4 px-4 pb-20 text-center sm:block sm:p-0">
-            <div class="fixed inset-0 bg-slate-900 bg-opacity-75 transition-opacity" aria-hidden="true" onclick="closeModal()"></div>
-            <span class="hidden sm:inline-block sm:align-middle sm:h-screen" aria-hidden="true">&#8203;</span>
-            <div class="inline-block align-bottom bg-white rounded-2xl text-left overflow-hidden shadow-xl transform transition-all sm:my-8 sm:align-middle sm:max-w-4xl sm:w-full">
-                
-                <!-- Modal Header -->
-                <div class="bg-gradient-to-r from-slate-50 to-white px-6 py-4 border-b border-slate-200 flex justify-between items-start">
-                    <div>
-                        <div class="flex items-center gap-2 mb-1">
-                            <span id="modalReportNo" class="text-xs font-mono font-bold text-brand-600 bg-brand-50 px-2 py-0.5 rounded"></span>
-                            <span id="modalDate" class="text-xs text-slate-500"></span>
-                        </div>
-                        <h3 class="text-lg leading-6 font-bold text-slate-900" id="modalCustomer"></h3>
-                        <p class="text-sm text-slate-500 mt-1" id="modalSection"></p>
-                    </div>
-                    <div class="flex flex-col items-end gap-2">
-                         <span id="modalSeverity" class="px-2.5 py-0.5 rounded-full text-xs font-medium"></span>
-                         <button onclick="closeModal()" class="text-slate-400 hover:text-slate-500 focus:outline-none">
-                            <svg class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" /></svg>
-                        </button>
-                    </div>
-                </div>
-
-                <!-- Modal Body Tabs -->
-                <div class="px-6 py-4">
-                    <div class="border-b border-slate-200 mb-4">
-                        <nav class="-mb-px flex space-x-6" aria-label="Tabs">
-                            <button onclick="switchTab('summary')" id="tab-summary" class="tab-btn border-brand-500 text-brand-600 whitespace-nowrap py-3 px-1 border-b-2 font-medium text-sm">Summary & Cause</button>
-                            <button onclick="switchTab('progress')" id="tab-progress" class="tab-btn border-transparent text-slate-500 hover:text-slate-700 hover:border-slate-300 whitespace-nowrap py-3 px-1 border-b-2 font-medium text-sm">Progress & Action</button>
-                            <button onclick="switchTab('details')" id="tab-details" class="tab-btn border-transparent text-slate-500 hover:text-slate-700 hover:border-slate-300 whitespace-nowrap py-3 px-1 border-b-2 font-medium text-sm">Full Details</button>
-                        </nav>
-                    </div>
-
-                    <div id="content-summary" class="tab-content space-y-4">
-                        <div class="bg-red-50 border-l-4 border-red-400 p-4 rounded-r-lg">
-                            <h4 class="text-sm font-bold text-red-800 mb-1">Root Cause Analysis</h4>
-                            <p id="modalCause" class="text-sm text-red-700 whitespace-pre-line"></p>
-                        </div>
-                        <div class="bg-emerald-50 border-l-4 border-emerald-400 p-4 rounded-r-lg">
-                            <h4 class="text-sm font-bold text-emerald-800 mb-1">Corrective Action / Prevention</h4>
-                            <p id="modalPrevention" class="text-sm text-emerald-700 whitespace-pre-line"></p>
-                        </div>
-                    </div>
-
-                    <div id="content-progress" class="tab-content hidden space-y-4">
-                         <div class="bg-blue-50 border border-blue-100 p-4 rounded-lg">
-                            <h4 class="text-sm font-bold text-blue-800 mb-2">Latest Update</h4>
-                            <p id="modalThirdReport" class="text-sm text-blue-900 whitespace-pre-line"></p>
-                        </div>
-                         <div class="bg-slate-50 border border-slate-200 p-4 rounded-lg">
-                            <h4 class="text-sm font-bold text-slate-800 mb-2">Overview</h4>
-                            <p id="modalOverview" class="text-sm text-slate-600 whitespace-pre-line"></p>
-                        </div>
-                    </div>
-
-                    <div id="content-details" class="tab-content hidden space-y-4">
-                        <div class="grid grid-cols-2 gap-4 text-sm">
-                            <div><span class="font-medium text-slate-500">Area:</span> <span id="modalArea"></span></div>
-                            <div><span class="font-medium text-slate-500">Liability:</span> <span id="modalLiability"></span></div>
-                            <div><span class="font-medium text-slate-500">Subcontractor:</span> <span id="modalSubcon"></span></div>
-                            <div><span class="font-medium text-slate-500">Classification:</span> <span id="modalClass"></span></div>
-                        </div>
-                        <hr class="border-slate-100">
-                        <div>
-                            <h4 class="text-sm font-bold text-slate-700 mb-2">First Report (Original)</h4>
-                            <div class="bg-slate-50 p-3 rounded border border-slate-200 text-xs font-mono text-slate-600 h-40 overflow-y-auto whitespace-pre-line" id="modalFirstReport"></div>
-                        </div>
-                    </div>
-                </div>
-                
-                <div class="bg-slate-50 px-6 py-3 flex justify-end">
-                    <button type="button" class="w-full inline-flex justify-center rounded-md border border-slate-300 shadow-sm px-4 py-2 bg-white text-base font-medium text-slate-700 hover:bg-slate-50 focus:outline-none sm:mt-0 sm:ml-3 sm:w-auto sm:text-sm" onclick="closeModal()">Close</button>
-                </div>
-            </div>
-        </div>
+        <h2 class="text-2xl sm:text-3xl font-bold tracking-tight text-slate-900">BPI Learning Library <span class="text-slate-400 font-medium">|</span> คลังเรียนรู้สาเหตุ บทเรียน และแนวทางป้องกัน</h2>
+        <p class="mt-2 text-sm sm:text-[15px] text-slate-600 leading-relaxed">เริ่มจาก Upload CSV ล่าสุด จากนั้นค้นหาเคสหรือเลือก Quick Focus เพื่ออ่าน Overview ภาษาไทยและ English แบบเทียบกันได้ทันที</p>
+      </div>
+      <div id="datasetStatus" class="xl:min-w-[310px] text-xs text-slate-500 bg-white rounded-2xl border border-slate-200 p-4 shadow-sm">กำลังเตรียมข้อมูล...</div>
     </div>
 
-    <!-- Analytics Dashboard Modal -->
-    <div id="analyticsModal" class="fixed inset-0 z-50 hidden overflow-y-auto">
-        <div class="flex items-center justify-center min-h-screen px-4 pt-4 pb-20 text-center sm:p-0">
-            <div class="fixed inset-0 transition-opacity bg-slate-900 bg-opacity-75" aria-hidden="true" onclick="toggleDashboard()"></div>
-            <div class="inline-block w-full max-w-5xl p-6 my-8 overflow-hidden text-left align-middle transition-all transform bg-white shadow-xl rounded-2xl sm:align-middle">
-                <div class="flex justify-between items-center mb-6">
-                    <h2 class="text-xl font-bold text-slate-800">Analytics Dashboard</h2>
-                    <button onclick="toggleDashboard()" class="text-slate-400 hover:text-slate-600"><svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg></button>
-                </div>
-                
-                <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
-                    <div class="bg-slate-50 p-4 rounded-xl border border-slate-100">
-                        <h3 class="text-sm font-semibold text-slate-600 mb-4 text-center">Incident by Type</h3>
-                        <canvas id="chartType"></canvas>
-                    </div>
-                    <div class="bg-slate-50 p-4 rounded-xl border border-slate-100">
-                        <h3 class="text-sm font-semibold text-slate-600 mb-4 text-center">Severity Distribution</h3>
-                        <canvas id="chartSeverity"></canvas>
-                    </div>
-                    <div class="bg-slate-50 p-4 rounded-xl border border-slate-100 md:col-span-2">
-                        <h3 class="text-sm font-semibold text-slate-600 mb-4 text-center">Top Sections Affected</h3>
-                        <canvas id="chartSection" height="100"></canvas>
-                    </div>
-                </div>
-            </div>
-        </div>
+    <div class="grid grid-cols-2 lg:grid-cols-4 gap-3 mt-5" aria-label="Start here">
+      <button onclick="document.getElementById('csvFileInput').click()" class="quick-link text-left rounded-2xl border border-rose-200 bg-rose-50/70 hover:bg-rose-50 p-4 group">
+        <div class="flex items-center justify-between"><span class="w-9 h-9 rounded-xl bg-rose-600 text-white flex items-center justify-center">📥</span><span class="text-[10px] font-mono font-bold text-rose-600 uppercase">Step 1</span></div>
+        <div class="mt-3 text-sm font-bold text-slate-900">Upload CSV</div><div class="text-xs text-slate-500 mt-1">โหลดข้อมูลล่าสุดก่อนเริ่มใช้งาน</div>
+      </button>
+      <button onclick="scrollToSection('smartFilterPanel'); setTimeout(()=>document.getElementById('searchInput')?.focus(),350)" class="quick-link text-left rounded-2xl border border-slate-200 bg-white hover:border-brand-200 p-4 group">
+        <div class="flex items-center justify-between"><span class="w-9 h-9 rounded-xl bg-slate-100 text-slate-700 flex items-center justify-center">🔎</span><span class="text-[10px] font-mono font-bold text-slate-400 uppercase">Find</span></div>
+        <div class="mt-3 text-sm font-bold text-slate-900">Search & Filter</div><div class="text-xs text-slate-500 mt-1">ค้น Case ID, ลูกค้า, Root Cause หรือ Overview</div>
+      </button>
+      <button onclick="focusCasesSection()" class="quick-link text-left rounded-2xl border border-slate-200 bg-white hover:border-brand-200 p-4 group">
+        <div class="flex items-center justify-between"><span class="w-9 h-9 rounded-xl bg-slate-100 text-slate-700 flex items-center justify-center">📚</span><span class="text-[10px] font-mono font-bold text-slate-400 uppercase">Learn</span></div>
+        <div class="mt-3 text-sm font-bold text-slate-900">Explore Cases</div><div class="text-xs text-slate-500 mt-1">ดู Case Deck หรือเลือกเคสเพื่อศึกษา</div>
+      </button>
+      <div class="grid grid-cols-2 gap-2">
+        <button onclick="toggleAnalyticsModal()" class="quick-link rounded-2xl border border-slate-200 bg-white hover:border-brand-200 p-3 text-center"><div class="text-xl">📊</div><div class="text-xs font-bold mt-1">Analytics</div></button>
+        <button onclick="openQuizModal()" class="quick-link rounded-2xl border border-slate-200 bg-white hover:border-brand-200 p-3 text-center"><div class="text-xl">🎯</div><div class="text-xs font-bold mt-1">Quiz</div></button>
+      </div>
     </div>
 
-    <script>
-        // --- DATA INITIALIZATION ---
-        let allData = [];
-        let filteredData = [];
-        let activeCategory = 'All';
-        let activeFilters = { severity: null };
-        
-        // Embedded Seed Data (From your provided file)
-        const seedCSV = `Report No.,Customer Name / Sub name,Note,Date of occurrence of accident / nonconformity,Report issue date,1st or Innitial report QB Received date,Progress date,Occurrence area (base),Section,Liability,Type of accident,injury,Damage,Incident Severity Level,Classification  for second report ,First Report,Second Report,Person Incharge,Third Report ,Overview,Final Report,Reporter,Sub contract name,Date Follow-up,Total claim,KLL's insurance ,Customer's insurance ,Sub's insurance ,Claim under consideration ,Fine by KLL,Fine by customer,REVENUE,COST,TRANSPORTATION,PROFIT,Case Decision
-BKKTR25003,Nissei Electric (Thailand) Co. Ltd.,เรซิน (total loass) no buyer,09-Oct-25,22-Oct-25,01-Apr-26,02-Apr-26,"Phanat Nikhom District, Chonburi",Sea Import no.1,OWN・OTHERS,Accident,Not Injured - ไม่บาดเจ็บ,Damaged - เกิดความเสียหาย,High,Transport & Handling,"The company hired Thammachat Transport Co., Ltd. to deliver Fluoro Polymer...","Root Cause
-The accident was caused by driver negligence...","SVB sales...",,"• Incident Brief : Total loss...
-• Current Status : Still waiting...",,Sea Import C/S,Thammachart transport,...,"7,759,658.96",,,,"3,000,000","4,759,658.96",0,0,,,,,Offensive
-BKKAI25001,Siam kubota ,สาขาผิด,01-Nov-25,02-Apr-26,02-Apr-26,02-Apr-26,SVB,Air Import,OWN,Wrong Input Data,Not concerned,Not concerned,Low,Customs & Compliance,"wrong input Entry...","Root Cause
-1. Import Entry specified the incorrect taxpayer identification number...",,Company paid 3960 baht,,Air Import,,,,,,,,3960,,,,,,Offensive
-SVBAI26001,Muramoto Electron (Thailand) public company,"สิทธิประโยชน์ผิด , ข้อมูลเดิม copy วาง",24-Mar-26,16-Apr-26,16-Apr-26,16-Apr-26,Suvannabhumi Terminal (Free Zone) ,Air Import,OWN・OTHERS,Wrong Input Data,Not concerned,Not concerned,High,Customs & Compliance,"Reference to MURAMOTO...","Root Cause
-People / Human Error...",,"According to Import Entry... Conclusion -METCO pay additional...",Air Import,,Final-2/07/26,"305,716.00",,,,,"138,166.00","167,550.00",,,,,Offensive
-BKKTR26001,THAI TOKAI CARBON PRODUCT RODJANA COMPANY LIMITED,พิมพ์ตู้ผิด,27-Apr-26,22-May-26,22-May-26,,SVB,Sea TR,OWN,Mistake,Not concerned,Not concerned,LOW,Transport & Handling,"Mistake EGLCMJ125780SI...","Root Cause
-Previously, container numbers were received as images...",Sales / Waranist Kanweeranan...,,"
-Conclusion (2 Jul 2026)
-Before: TR received container numbers...",Chanokchon Vaipoka,J & J LOGISTICS SYSTEM COMPANY LIMITED,...,,,,,,,,,,,,Offensive
-BPRTR26002,"KUBOTA ENGINE (THAILAND) CO.,LTD",ชนกำแพงสีลอก,09-Jun-26,09-Jun-26,09-Jun-26,22-Jun-26,Dock load at Kubota Engine,Sea TR,OWN,Accident,Not concerned,Damaged - เกิดความเสียหาย,LOW,Transport & Handling,"At approximately 09:10...","22 Jun 2026 Root Cause Poor check of space...",Arpapan Ploysrimongkol...,"2 Jul 2026: This case is currently pending...",,"21 Jul 2026 QB received from Bangphra that the customer that they do not wish to file a claim...",Ms.Thitikarn Chuenpracharom (Mard)...,NMK,...,,,,,,,,,,,,Offensive
-BPRTR26003,"Siam Toyota Manufacturing CO.,Ltd",,10-Jun-26,10-Jun-26,10-Jun-26,22-Jun-26,Mabuchi,Sea TR,not concern,Mistake,Not concerned,Not concerned,Medium,Transport & Handling,"The driver delivered the above-mentioned container...","root cause Driver picked up the wrong container...",TKS CS / safety,,,"Conclusion Seal Cutting: The seal was cut by the driver...",Natnicha Sea Transportation,"THAIKOTCHASARN LOGISTICS SERVICE CO.,LTD. (TKLS)",...,,,,,,,,,,,,Offensive
-BPRTR26004,Isuzu Motor (Thailand),,24-Jun-26,24-Jun-26,24-Jun-26,28-Jun-26,"Linex International (Thailand) Co., Ltd.",Sea TR,not concern,other,Not concerned,Not concerned,Medium,Transport & Handling,"The driver transported the trailer...","Root cause The driver did not notice any suspension abnormalities...",,,,"driver training (completed on June 27) have been fully executed...",Ms.Thitikarn Chuenpracharom (Mard)...,"THAIKOTCHASARN LOGISTICS SERVICE CO.,LTD. (TKLS)",...,,,,,,,,,,,,Offensive
-BPRTR26005,Toyota Parts Center Asia Pacific (TPCAP),,30-Jun-26,30-Jun-26,30-Jun-26,07-Jul-26,Toyota Parts Center Asia Pacific (TPCAP) Ban Pho,Sea TR,not concern,Broken,Not concerned,Not concerned,Medium,Transport & Handling,"After the driver completed unloading...","root cause The driver did not notice the abnormal of decrease in the clutch fluid...",Ms.Thunwarai J and Ms. Pimlapa STKS CS / safety,"7 Jul 2026 TKLS has confirmed that the clutch system inspection is included...",,"7 Jul 2026 Please coordinate with TKLS to provide drivers with refresher training...",Ms.Thitikarn Chuenpracharom (Mard)...,"THAIKOTCHASARN LOGISTICS SERVICE CO.,LTD. (TKLS)",...,,,,,,,,,,,,Uncontrollable
-SVBAI26002,Siam kubota ,Invoice ไม่ครบ (2/7),21-Aug-25,03-Jul-26,03-Jul-26,,SVB,Air Import,OWN・OTHERS,Mistake,Not concerned,Not concerned,High,Customs & Compliance,"• What (The Incident): KLL completed the customs entry using only 2 invoices...","Root Cause Analysis 1. After we checked the previous email...",Sales : Kittipat / Suwimol...," Nishida sab made a few changes...",,"KLL have responsible these are amounts. Addition of import duty THB 34,667.00...",Anyapat Thitiworn (KLLTH. AI CS)...,,...,"645,566.00",,,,,"85,785.00",561781,,,,,Offensive
-BKKSI26001,Bangkok Thai Power,HS code ผิด,08-Jul-26,08-Jul-26,08-Jul-26,,Seaport customer clearance warehouse at Klong Toey (PAT).,Sea Import no.1,OWN,Mistake,Not concerned,Not concerned,Medium,Customs & Compliance,"• The shipment of our new customer...","Root Cause Analysis Before start to import process...",Sales : Ms.Anunyapohn Boontawongsa...,"31 Jul 2026 The BPI team accepts your Second Report...",,"2. Pending : Bangkok Thai Power (SI) • Incident Brief : (New customer without Credit) Incorrect HS Code...",K.Puchong,,...,"73,790.00",,,,,22468,"51,322.00","137,679.55","140,534.55",,"-2,855.00",Offensive
-BKKSI26002,"OTICS (THAILAND) CO.,LTD. ",,09-Jul-26,09-Jul-26,09-Jul-26,13-Jul-24,Bangkok Port,Sea Import no.1,OWN,Delay ,Not concerned,Not concerned,Low,Transport & Handling,"CS misunderstood that the shipment clearance had already been arranged...",,,,,The container has been completely delivered to the customer’s site on 10 July 2026.,K.Sunun,CMA,...,,,,,,,,,,,,Offensive
-BPRTR26006,Panasonic Automotive,ชนเสาไฟฟ้า,03-Jul-26,13-Jul-26,13-Jul-26,15-Jul-26,Panasonic Automotive,Sea TR,other,Accident,Not concerned,Damaged - เกิดความเสียหาย,Medium,Transport & Handling,"Incident Summary: A 22-wheel truck...","Root Cause Analysis The driver did not adequately observe...",Sales : Mr.Panitan...,,,"14 Jul 2026 Panasonic confirmed that drivers are required to inform PASAP Security...",Mr.Prapat Nanthasri,"THAIKOTCHASARN LOGISTICS SERVICE CO.,LTD. (TKLS)",...,,,,,,,,,,,,Offensive
-SVBSA26001,"PANASONIC SOLUTIONS (THAILAND) CO., LTD.",เครื่องจักรล้ม 2.6M,18-Dec-25,15-Jul-26,15-Jul-26,23/07/2026,PANASONIC MOTOR (THAILAND) COMPANY LIMITED,Sales,OWN・OTHERS,Accident,Not concerned,Damaged - เกิดความเสียหาย,High,Transport & Handling," Incident Summary : On 18 December 2025...","Root Cause Analysis The operator did not check the work area conditions...",Sales : Panitan...,"Total Amount (Claim/Penalty/Fine) 74010.83 USD...","3. Pending : Panasonic (SA) • Incident Brief : Machine fell down by Subcon “Shinkai”...",Panitan Tanjatuporn (KLLTH. SALES SVB) ,"Shinkai Transport Systems, Ltd. (STS)",...,"2,627,384.00",,,"วงเงิน10,000,000",,,,"220,918.73","176,874.38",,"44,044.35",Offensive
-BKKTR26002,NK MECHATRONICS,เหินน้ำ (หางกัดหัว-ตู้เปล่า) ,16-Jul-26,16-Jul-26,16-Jul-26,17-Jul-26,"Highway 304, before reaching the Nakhon Ratchasima Ring Road",Sea TR,other,Accident,Not concerned,Damaged - เกิดความเสียหาย,Medium,Transport & Handling,"สรุปเหตุการณ์ / Incident Summary : At 4:15 PM...","Root Cause Analysis Based on the investigation, the vehicle was traveling under wet road conditions...",,"Mr.Achira Ms.Orathai",,"Set Up Continuous Monitoring: Add Thammachat Transport Co., Ltd. to the watchlist...",Mr.Prapat Nanthasri,"THAIKOTCHASARN LOGISTICS SERVICE CO.,LTD. (TKLS)",...,,,,,,,,,,,,Offensive
-SVBAT26001,K Line Logistics ( Thailand ) Ltd.,แก้มยางฉีก ไม่ล็อคปีก,05-Jun-26,23-Jul-26,23-Jul-26,,ท่าเรือคลองเตย,ATR,OWN,Accident,Not concerned,Damaged - เกิดความเสียหาย,Medium,Transport & Handling,"รถบรรทุก KLL ทะเบียน : 67-4424...","Root Cause Analysis 1. The KLL driver there is a lack of standard operating procedures...",Sales : Mr.Natee Yoojaroen...,,,"11 Aug 2026 Please continue to: • Follow the Check Before Load/Unload SOP...",Nirut Jumta (KLLTH. AIR TR), -,...,,,,,,,,,,,,Offensive
-BKKSE26001,"NAKAGAWA SEISAKUJO (THAILAND) CO., LTD.",14 D/ Demurage / Storage at Japan ,21-Jun-26,23-Jul-26,23-Jul-26,30/07/2026,Wall Street Office ,Sea Export no.1,OWN・OTHERS,Delay ,Not concerned,other,Medium,Order & Instruction,"สรุปเหตุการณ์ / Incident Summary : S/NAKAGAWA...","Root Cause Analysis 1.SITC changed to use E-platform...",Sales ES Eastern Seaboard...,"31 Jul 2026 To officially close this case...",,"4 Jul 2026 After rechecking the evidence... QB finds it acceptable and agrees to close the case.",Benjamas Yodsanga,,...,"1,872.35",,,,,1872.35,,,,,,Offensive
-SVBAE26001,KLL TH,ถูกรถถอยชน (เราถูก),16-Jul-26,23-Jul-26,23-Jul-26,,Cargo terminal,Air Export,other,Accident,Not concerned,Damaged - เกิดความเสียหาย,Low,Transport & Handling,"At approximately 4.30PM, Mr.Soonthorn drove into teminal...",,,,,เปิดใบเคลม,Thanaporn S., -,,,,,,,,,,,,,Defensive
-BKKSI26003,K Line Logistics ( Thailand ) Ltd.,พี่กบถูกชน,03-Aug-26,04-Aug-26,04-Aug-26,04-Aug-26,Bridge crossing the Sathorn-Rama IV intersection.,Sea Import no.1,OTHERS,Accident,Not concerned,Damaged - เกิดความเสียหาย,Low,Transport & Handling,"สรุปเหตุการณ์ / Incident Summary : Company car license number...",,,,,"Since our driver was not at fault in this accident...",Kpuchong,,,,,,,,,,,,,,Defensive
-BKKSI26004,SUMIDEN,กล่องบุบ แต่ท่าเรือยืนยันว่าไม่บุบ,03-Aug-26,04-Aug-26,04-Aug-26,04-Aug-26,Bangkok Port,Sea Import no.1,OWN・OTHERS,Broken,Not concerned,Damaged - เกิดความเสียหาย,Low,Transport & Handling,"สรุปเหตุการณ์ / Incident Summary : On 3/4/26, Sumiden invoice...","11/08/2026 ติดตาม และไดรับแจ้งว่า รอลูกค้า แจ้ง 13 Aug...",,,,customer will handle this internally and that KLL is not required to take further action.,Sunan Saengow,Waiting ,...,"Waiting",,,,,,,,,,,,not responsibility
-BKKSI26005,"Omron Electronics Co., Ltd",ส่งผิดที่ ปทุม -ชลบุรี,05-Aug-26,11-Aug-26,11-Aug-26,25/08/2026,Place of occurrence : KCST4,Sea Import no.1,OWN,Mistake,Not concerned,Not concerned,Medium,Order & Instruction,"สรุปเหตุการณ์ / Incident Summary : Omron Electronics Co., Ltd....","Root Cause Analysis CS forgot to changed place on mail...",Sales WS No.1 Mr.Chotitat Chaviwongpan...,"The BPI/QB team agrees with the proposed solution...",,"Thank you for your time in the meeting to discuss the Omron case...",Sunan Saengow,,...,"52,660.00",,,,,"52,660.00",,"1,417,456.26","1,412,662.26",waiting,"4,797.00",Offensive
-SVBAI26003,"NK MECHATRONICS CO., LTD.",สินค้าเสียหายจาก TG terminal ,16-Jul-26,13-Aug-26,13-Aug-26,,SVB,Air Import,OTHERS,Damage,Not concerned,Damaged - เกิดความเสียหาย,Low,Transport & Handling,"สรุปเหตุการณ์ / Incident Summary : Customer claim damaged cargo with Airlines...",,,,,"This case is the same as Irregular Report No. 77. KLL is not responsible...",Anyapat Thitiworn (KLLTH. AI CS),,,"8,817.08",,,"8,817.08",,,,,,,,not responsibility
-BKKSI26006,K Line Logistics ( Thailand ) Ltd.,กระจกหน้ารถแตก,17-Aug-26,17-Aug-26,17-Aug-26,,unknown,Sea Import no.1,OWN,Broken,Not concerned,Damaged - เกิดความเสียหาย,Low,Transport & Handling,"สรุปเหตุการณ์ / Incident Summary : Company car license number...",,,,,"Contact the insurance company to obtain a claim form...",K.Puchong,,,,,,,,,,,,,,Uncontrollable
-SVBAE26002,Asian Honda ,ติด cargo label ผิด จำนวน 1 กล่อง ,15-Aug-26,18-Aug-26,18-Aug-26,02/09/2026,TG TERMINAL,Air Export,OWN,Mistake,Not concerned,Damaged - เกิดความเสียหาย,Medium,Transport & Handling,"สรุปเหตุการณ์ / Incident Summary : วันที่ 18 สิงหาคม 2569 เวลา 09.08 น...",,,,"Asian Honda (AE) • Incident Brief : AE attached wrong cargo label...",Thanaporn S.,,...,"Waiting",,,,,,,,,,,,Offensive
-SVBAT26002,K Line Logistics ( Thailand ) Ltd.,ยางรั่ว,03-Aug-26,18-Aug-26,18-Aug-26,,front of the company sumiriko fine elastomer (thailand) (Rayong),ATR,OWN,Accident,Not concerned,Damaged - เกิดความเสียหาย,Low,Transport & Handling,"สรุปเหตุการณ์ / Incident Summary : KLL Truck : 3ฒธ-5692...",,,,,Contact a tire repair shop to repair an on-site repair; the cost was 450THB.,Chanokchon Vaipoka,,...,"450",,,,,450,,,,,,Uncontrollable
-BKKTR26003,"TOSPLANT ENGINEERING (THAILAND) CO., LTD.",ชนเสาที่กั้นประตูลูกค้า,19-Aug-26,20-Aug-26,20-Aug-26,,Yoshino Moong Pattana (Thailand) Company Limited,Sea TR,OWN,Accident,Not concerned,Damaged - เกิดความเสียหาย,Low,Transport & Handling,"Customer: TOSPLANT ENGINEERING...",,,"พอมแพมมมมม วันนี้ได้รับใบเสนอราคาจากทีมช่างมาแล้วงับ...",,"17 Sep 2026 Thank you for sending the photos of the repaired door barrier...",Mr.Prapat Nanthasri,THAMON TRANSPORT,,,,,,,,,,,,,Offensive
-BKKGA26001,K Line Logistics ( Thailand ) Ltd.,รถนาย Nishida ถูกชนท้าย- ฝ่ายถูก,21-Aug-26,21-Aug-26,21-Aug-26,,Rama IV Road before the expressway entrance,GA,OTHER,Accident,Not concerned,Damaged - เกิดความเสียหาย,Low,Transport & Handling,"สรุปเหตุการณ์ / Incident Summary : While Mr.Supachai was driving back...",,,"Miyawaki san inform which in future case...",,Mr.Supachai has already contacted the insurance company to file a claim...,Jaranya,,,,,,,,,,,,,,Defensive
-SVBAE26003,NS-OG Energy Solutions (Thailand) Ltd.,ส่ง AWB ผิด จากจากมาเลเซีย ไป ญี่ปุ่น,21-May-26,25-Aug-26,25-Aug-26,02/09/2026,SVB office,Air Export,OWN,Mistake,Not concerned,Damaged - เกิดความเสียหาย,Medium,Order & Instruction,"สรุปเหตุการณ์ / Incident Summary : วันที่ 21 สิงหาคม มีงาน NS-OG 2 ชิปเม้นท์...",,,,"NS-OG (AE) • Incident Brief : The ATA document was mistakenly sent to KIX...",Thanaporn S.,,...,,,,,,,,,,,,Offensive
-BKKSI26007,Ikano,ทำ อย.ผิด (งาน KTL) ,26-Aug-26,27-Aug-26,27-Aug-26,,BKK Office,Sea Import no.2,OWN,Complaint,Not concerned,Not concerned,High,Order & Instruction,"สรุปเหตุการณ์ / Incident Summary : 26 Aug 2026 : We received information from BCS...","Root Cause Analysis The Food additive calculation was done by manually...",Sea Import No.2 Name Ms.Nawiya Sinchai...,"4 Sep 26 QB needs a few additional details...",,,Ms. Piyarat Khuptrakool,,...,"84,756.97",,,,,"84,756.97",,81500,700,,80800,Offensive
-SVBAT26003,MARUI SUM (THAILAND,Deley 40 M. (ฝนตก) ,01-Sep-26,02-Sep-26,02-Sep-26,,"MARUI SUM (THAILAND) CO.,LTD ",ATR,OWN,Delay ,Not concerned,Damaged - เกิดความเสียหาย,Medium,Transport & Handling,"Transport Truck on. 64-1581...","Root Cause Analysis ""1. The transport planner combined the AI shipment...",Sales WS No.1 Natwipa Kampan...,,,,Chanokchon Vaipoka,3 Lucky Man,...,"9,000",,,,,9000,,,,,,Offensive
-BPRTR26007,THAI YAMAZAKI,ถอยชนท่อแป๊บแตก,04-Sep-26,04-Sep-26,04-Sep-26,,"THAI YAMAZAKI Factory, Pathum Thani",Sea TR,OWN,Accident,Not concerned,Damaged - เกิดความเสียหาย,Medium,Transport & Handling,"สรุปเหตุการณ์ / Incident Summary : The driver was moving the empty tractor...","สาเหตุที่แท้จริง (Root Cause): Human Error: พนักงานขับรถไม่ได้วางหมอนรองล้อ...",Sales ; Chutirat Kittithavorawut...," BPI has reviewed the report, and the root cause and countermeasures are acceptable.",,"10 Sep 2026 📌 สรุปภาพรวมของเคส (Case Overview: THAI YAMAZAKI)...",Natnicha B.,TKLS,...,,,,,,,,,,,,Offensive
-CNXAE26001,"NISSHINBO MICRO DEVICES(THAILAND)CO.,LTD.",ปลวกรับทานพาเลทกระดาษ,03-Sep-26,04-Sep-26,04-Sep-26,,RENT WAREHOUSE,Air Export Operation,OWN・OTHERS,Broken (ชำรุด/ขัดข้อง),Not concerned,Damaged - เกิดความเสียหาย,Low,Other,"สรุปเหตุการณ์ / Incident Summary : พาเลทกระดาษที่เตรียมไว้สำหรับแพ็คสินค้า...",,,"8 Sep 2026 Customer Impact: Did this delay the packing/shipping schedule...",,"9 Sep 2026 บริษัท ฉีดปลวกเข้ามาดำเนินการเรียบร้อย ",Mrs.Wilavan Phuengketphonthana,,,...,"2,637",,,,,2637,,,,,,Uncontrollable
-BKKSI26008,SANYU SIAM TRADING ,wooden packing แตกทำให้ถังสินค้า เสียหาย,28-Aug-26,04-Sep-26,04-Sep-26,,Bangkok Port,Sea Import no.1,OWN・OTHERS,Broken,Not concerned,Damaged - เกิดความเสียหาย,Low,Transport & Handling,"สรุปเหตุการณ์ / Incident Summary : On 28/8/26, SANYU SIAM TRADING...",,,"8 Sep 2026 SANYU SIAM TRADING, could you please share more details...",,"10 Sep 2026 Since the cargo damage was caused by inadequate packing...",Sunan Saengow,,,...,"2,364.32",,,,,2364.32,,,,,,not responsibility
-SVBAE26004,TEIJIN FRONTIER (THAILAND) ,มีเทศกาล กล้วยไม้ ทำให้ส่งของไม่ได้ ล่าช้า,08-Sep-26,09-Sep-26,09-Sep-26,,TG TERMINAL,Air Export,OWN-Other,Delay ,Not concerned,Damaged - เกิดความเสียหาย,Medium,Transport & Handling,"สรุปเหตุการณ์ / Incident Summary : ลูกค้า Teijin Frontier มีสินค้า...",,,,,,Thanaporn,,...,,,,,,,,,,,,waiting
-SVBAT26004,Kawasaki Motors Enterprise,ชนท้าย trailer แบบไม่เบรก,09-Sep-26,10-Sep-26,10-Sep-26,,Bangna KM.19,ATR,OWN,Accident,Not concerned,Damaged - เกิดความเสียหาย,Medium,Transport & Handling,"สรุปเหตุการณ์ / Incident Summary : Truck KLL No. : 67-4423...",,,,,,Chanokchon Vaipoka,,,,,,,,,,,,,,Offensive`;
+    <div id="heroStats" class="grid grid-cols-2 xl:grid-cols-4 gap-3 mt-4"></div>
+    <div class="flex flex-wrap gap-2 mt-4 pt-4 border-t border-slate-200/80" id="quickActionsBar">
+      <span class="text-[11px] font-mono font-bold uppercase tracking-wider text-slate-400 self-center mr-1">Quick Focus</span>
+      <button onclick="resetToAllCases(); focusCasesSection();" class="quick-link nav-pill active inline-flex items-center gap-2 px-3 py-2 rounded-xl border border-slate-200 bg-white text-slate-700 text-xs font-semibold">🏠 All</button>
+      <button onclick="applyQuickView('high');" class="quick-link nav-pill inline-flex items-center gap-2 px-3 py-2 rounded-xl border border-slate-200 bg-white text-slate-700 text-xs font-semibold">🚨 High Severity</button>
+      <button onclick="applyQuickView('overview');" class="quick-link nav-pill inline-flex items-center gap-2 px-3 py-2 rounded-xl border border-slate-200 bg-white text-slate-700 text-xs font-semibold">🧭 Has Overview</button>
+      <button onclick="applyQuickView('needFinal');" class="quick-link nav-pill inline-flex items-center gap-2 px-3 py-2 rounded-xl border border-slate-200 bg-white text-slate-700 text-xs font-semibold">🏁 Pending Final</button>
+      <button onclick="applyQuickView('bookmarks');" class="quick-link nav-pill inline-flex items-center gap-2 px-3 py-2 rounded-xl border border-slate-200 bg-white text-slate-700 text-xs font-semibold">⭐ My Library</button>
+    </div>
+  </div>
+</section>
 
-        // --- CORE FUNCTIONS ---
+<section class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-4 pb-2 w-full" id="caseTypeSection">
+  <!-- Section Intro -->
+  <div class="flex flex-col sm:flex-row sm:items-end justify-between gap-2 mb-4">
+    <div>
+      <div class="flex items-center gap-2 mb-1">
+        <span class="text-[11px] font-mono font-bold text-brand-700 uppercase tracking-wider bg-brand-50 border border-brand-200 px-2.5 py-0.5 rounded-full">
+          Incident Type Overview
+        </span>
+        <span class="text-xs text-slate-500 font-medium">คลิกเพื่อเลือกหมวดหมู่ที่ต้องการศึกษา</span>
+      </div>
+      <h2 class="text-xl sm:text-2xl font-bold text-slate-900 tracking-tight">
+        หมวดหมู่อุบัติเหตุ &amp; ข้อผิดพลาด (Type of Accident)
+      </h2>
+    </div>
+    
+    <!-- Active Category Status Indicator -->
+    <div id="categoryActiveIndicator" class="text-xs font-mono text-slate-500 flex items-center gap-2">
+      <!-- Injected by JS -->
+    </div>
+  </div>
 
-        function init() {
-            parseData(seedCSV);
-            renderCategories();
-            updateStats();
-            renderCards();
-            
-            // Search Listener
-            document.getElementById('searchInput').addEventListener('input', (e) => {
-                applyFilters(e.target.value);
-            });
-        }
+  <!-- Modern Minimal Category Cards Grid -->
+  <div class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3 sm:gap-4" id="categoryGrid">
+    <!-- Category Cards Injected by JS -->
+  </div>
+</section>
 
-        function parseData(csvContent) {
-            Papa.parse(csvContent, {
-                header: true,
-                skipEmptyLines: true,
-                complete: function(results) {
-                    allData = results.data.map(item => ({
-                        ...item,
-                        'Incident Severity Level': item['Incident Severity Level']?.trim() || 'Low',
-                        'Type of accident': item['Type of accident']?.trim() || 'Other'
-                    }));
-                    filteredData = [...allData];
-                    console.log("Data Loaded:", allData.length);
-                }
-            });
-        }
+<main class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 flex-1 w-full space-y-4" id="casesSection">
 
-        function handleFileUpload(input) {
-            const file = input.files[0];
-            if (!file) return;
-            
-            Papa.parse(file, {
-                header: true,
-                skipEmptyLines: true,
-                complete: function(results) {
-                    allData = results.data.map(item => ({
-                        ...item,
-                        'Incident Severity Level': item['Incident Severity Level']?.trim() || 'Low',
-                        'Type of accident': item['Type of accident']?.trim() || 'Other'
-                    }));
-                    resetFilters();
-                    alert(`Updated successfully! Loaded ${allData.length} cases.`);
-                }
-            });
-        }
+  <!-- Search & Secondary Filter Panel -->
+  <div id="smartFilterPanel" class="bg-white rounded-3xl shadow-sm border border-slate-200/80 p-4 sm:p-5 space-y-4">
+    
+    <!-- Header of Filter Section -->
+    <div class="flex flex-col sm:flex-row gap-3 items-center justify-between">
+      <!-- Search Input -->
+      <div class="relative flex-1 w-full">
+        <div class="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-slate-400">
+          <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/></svg>
+        </div>
+        <input type="text" id="searchInput" placeholder="ค้นหาตามชื่อลูกค้า, รหัสเคส (เช่น BKKTR25003), สาเหตุ, คำสำคัญ..." class="w-full pl-10 pr-24 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs sm:text-sm text-slate-900 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-brand-500 focus:bg-white transition-all">
+        <button id="btnClearSearch" onclick="clearSearchOnly()" class="absolute right-2 top-1/2 -translate-y-1/2 px-2.5 py-1 bg-slate-200 hover:bg-slate-300 text-slate-700 text-[11px] font-mono rounded-lg transition-colors hidden">
+          ✕ ล้าง
+        </button>
+      </div>
 
-        function renderCategories() {
-            const categories = ['All', 'Accident', 'Mistake', 'Delay', 'Broken', 'Complaint'];
-            const container = document.getElementById('categoryFilters');
-            
-            container.innerHTML = categories.map(cat => `
-                <button onclick="setCategory('${cat}')" 
-                    class="px-4 py-2 rounded-lg text-sm font-medium transition whitespace-nowrap
-                    ${activeCategory === cat ? 'bg-brand-600 text-white shadow-md' : 'bg-white text-slate-600 border border-slate-200 hover:bg-slate-50'}">
-                    ${cat}
-                </button>
-            `).join('');
-        }
+      <!-- Action Buttons -->
+      <div class="flex items-center gap-2 w-full sm:w-auto justify-end">
+        <button id="btnMainClearFilter" onclick="resetToAllCases()" class="flex items-center gap-1.5 px-3 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl text-xs font-semibold transition-all">
+          <svg class="w-3.5 h-3.5 text-brand-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/></svg>
+          <span>ล้างตัวกรองทั้งหมด</span>
+          <span id="activeFilterBadge" class="hidden px-1.5 py-0.2 text-[10px] bg-brand-600 text-white font-mono font-bold rounded-full">0</span>
+        </button>
 
-        function setCategory(cat) {
-            activeCategory = cat;
-            renderCategories();
-            applyFilters(document.getElementById('searchInput').value);
-        }
+        <button id="btnToggleBookmarks" onclick="toggleBookmarkFilter()" class="flex items-center gap-1.5 px-3 py-2 bg-white hover:bg-slate-50 border border-slate-200 text-slate-700 rounded-xl text-xs font-medium transition-colors shadow-2xs">
+          <svg id="starIconFilter" class="w-4 h-4 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11.049 2.927c.3-.921 1.603-.921 1.902 0l1.519 4.674a1 1 0 00.95.69h4.915c.969 0 1.371 1.24.588 1.81l-3.976 2.888a1 1 0 00-.363 1.118l1.518 4.674c.3.922-.755 1.688-1.538 1.118l-3.976-2.888a1 1 0 00-1.176 0l-3.976 2.888c-.783.57-1.838-.197-1.538-1.118l1.518-4.674a1 1 0 00-.363-1.118l-3.976-2.888c-.784-.57-.38-1.81.588-1.81h4.914a1 1 0 00.951-.69l1.519-4.674z"/></svg>
+          <span>ที่บันทึกไว้ (<span id="bookmarkCount">0</span>)</span>
+        </button>
+      </div>
+    </div>
 
-        function filterBy(type, value) {
-            // Toggle logic
-            if (activeFilters[type] === value) {
-                activeFilters[type] = null;
-            } else {
-                activeFilters[type] = value;
-            }
-            
-            // Update UI chips
-            document.querySelectorAll('.filter-chip').forEach(btn => {
-                if (btn.dataset.type === type && btn.dataset.val === activeFilters[type]) {
-                    btn.classList.add('bg-brand-100', 'text-brand-700', 'border-brand-300');
-                    btn.classList.remove('bg-slate-50');
-                } else {
-                    btn.classList.remove('bg-brand-100', 'text-brand-700', 'border-brand-300');
-                    btn.classList.add('bg-slate-50');
-                }
-            });
+    <div class="flex flex-col xl:flex-row xl:items-center justify-between gap-3 rounded-2xl border border-slate-200 bg-slate-50/80 px-4 py-3">
+      <div id="activeContextChips" class="flex flex-wrap items-center gap-2 text-xs"></div>
+      <div class="flex items-center gap-2 w-full xl:w-auto justify-end">
+        <label for="sortSelect" class="text-[11px] font-mono font-bold uppercase tracking-wider text-slate-500">Sort</label>
+        <select id="sortSelect" class="w-full xl:w-auto px-3 py-2 rounded-xl border border-slate-200 bg-white text-sm text-slate-700 focus:outline-none focus:ring-2 focus:ring-brand-500">
+          <option value="priority">Priority · สำคัญก่อน</option>
+          <option value="latest">Latest Date</option>
+          <option value="oldest">Oldest Date</option>
+          <option value="customer">Customer A-Z</option>
+        </select>
+      </div>
+    </div>
 
-            applyFilters(document.getElementById('searchInput').value);
-        }
+    <!-- Secondary Filters (Severity, Section, Classification) -->
+    <div class="pt-3 border-t border-slate-100 space-y-2 text-xs">
+      <div class="flex flex-wrap items-center gap-2">
+        <span class="text-[11px] font-mono font-bold text-slate-500 uppercase tracking-wider w-24">Severity:</span>
+        <div id="chipsSeverity" class="flex flex-wrap gap-1.5 flex-1"></div>
+      </div>
+      <div class="flex flex-wrap items-center gap-2">
+        <span class="text-[11px] font-mono font-bold text-slate-500 uppercase tracking-wider w-24">Section:</span>
+        <div id="chipsSection" class="flex flex-wrap gap-1.5 flex-1"></div>
+      </div>
+      <div class="flex flex-wrap items-center gap-2">
+        <span class="text-[11px] font-mono font-bold text-slate-500 uppercase tracking-wider w-24">Classification:</span>
+        <div id="chipsClass" class="flex flex-wrap gap-1.5 flex-1"></div>
+      </div>
+    </div>
 
-        function applyFilters(searchTerm) {
-            const term = searchTerm.toLowerCase();
-            
-            filteredData = allData.filter(item => {
-                // Category Filter
-                if (activeCategory !== 'All') {
-                    const type = item['Type of accident']?.toLowerCase() || '';
-                    if (activeCategory === 'Accident' && !type.includes('accident')) return false;
-                    if (activeCategory === 'Mistake' && !type.includes('mistake') && !type.includes('wrong') && !type.includes('complaint')) return false;
-                    if (activeCategory === 'Delay' && !type.includes('delay')) return false;
-                    if (activeCategory === 'Broken' && !type.includes('broken') && !type.includes('damage')) return false;
-                }
+    <!-- Results Status Bar -->
+    <div class="flex items-center justify-between text-xs font-mono text-slate-500 pt-3 border-t border-slate-100">
+      <div id="resultCount">กำลังเตรียมข้อมูล...</div>
+      <div id="importMsg" class="text-brand-700 font-medium"></div>
+    </div>
 
-                // Severity Filter
-                if (activeFilters.severity && item['Incident Severity Level'] !== activeFilters.severity) return false;
+  </div>
 
-                // Search Filter
-                if (term) {
-                    const searchStr = JSON.stringify(item).toLowerCase();
-                    return searchStr.includes(term);
-                }
-                return true;
-            });
+  <div id="csvReminderBanner" class="rounded-2xl border border-rose-200 bg-rose-50/80 px-4 py-3 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+    <div class="flex items-start gap-3">
+      <div class="w-9 h-9 rounded-xl bg-white border border-rose-200 text-rose-600 flex items-center justify-center">!</div>
+      <div>
+        <div class="text-sm font-bold text-rose-800">Preview Mode: ระบบแสดงตัวอย่างเพียง 1 เคส</div>
+        <div class="text-xs text-rose-700 mt-0.5">กรุณา Upload CSV ล่าสุดก่อนเริ่มศึกษา เพื่อให้ Dashboard แสดงข้อมูลจริงทั้งหมด</div>
+      </div>
+    </div>
+    <button onclick="document.getElementById('csvFileInput').click()" class="shrink-0 px-4 py-2 rounded-xl bg-rose-600 hover:bg-rose-700 text-white text-xs font-bold shadow-sm">📥 Upload CSV ตอนนี้</button>
+  </div>
 
-            renderCards();
-            updateStats();
-        }
+  <!-- Interactive Case View -->
+  <div id="caseViewHeader" class="case-view-shell rounded-2xl border border-slate-200 bg-white/85 px-4 py-3 shadow-sm"></div>
 
-        function renderCards() {
-            const grid = document.getElementById('caseGrid');
-            const empty = document.getElementById('emptyState');
-            
-            if (filteredData.length === 0) {
-                grid.innerHTML = '';
-                empty.classList.remove('hidden');
-                return;
-            }
-            
-            empty.classList.add('hidden');
-            
-            grid.innerHTML = filteredData.map((item, index) => {
-                const severity = item['Incident Severity Level'];
-                let sevColor = 'bg-emerald-100 text-emerald-700 border-emerald-200';
-                if (severity === 'High') sevColor = 'bg-red-100 text-red-700 border-red-200';
-                if (severity === 'Medium') sevColor = 'bg-amber-100 text-amber-700 border-amber-200';
+  <div id="cardGrid" class="w-full">
+    <!-- Interactive deck / focused case cards injected by JS -->
+  </div>
 
-                const type = item['Type of accident'];
-                let icon = '<svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>';
-                if (type.includes('Accident')) icon = '<svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/></svg>';
-                
-                // Clean up description for preview
-                let desc = item['First Report'] || '';
-                desc = desc.replace(/"/g, '').substring(0, 100) + '...';
+</main>
 
-                return `
-                <div class="bg-white rounded-xl border border-slate-200 shadow-sm card-hover overflow-hidden flex flex-col h-full cursor-pointer group" onclick="openModal(${index})">
-                    <div class="p-5 flex-grow">
-                        <div class="flex justify-between items-start mb-3">
-                            <span class="px-2.5 py-0.5 rounded-full text-xs font-medium border ${sevColor}">${severity}</span>
-                            <span class="text-xs text-slate-400 font-mono">${item['Date of occurrence of accident / nonconformity'] || '-'}</span>
-                        </div>
-                        <h3 class="text-lg font-bold text-slate-800 mb-1 line-clamp-1 group-hover:text-brand-600 transition-colors">${item['Customer Name / Sub name']}</h3>
-                        <p class="text-xs text-brand-600 font-medium mb-3">${item['Section'] || 'General'}</p>
-                        
-                        <div class="flex items-start gap-3 mb-4">
-                            <div class="mt-0.5 text-slate-400 shrink-0">${icon}</div>
-                            <p class="text-sm text-slate-600 line-clamp-2 leading-relaxed">${desc}</p>
-                        </div>
+<!-- Interactive Quiz Modal -->
+<div id="quizOverlay" class="fixed inset-0 bg-slate-900/50 backdrop-blur-xs z-50 hidden flex items-center justify-center p-3 sm:p-6 overflow-y-auto">
+  <div class="bg-white rounded-2xl shadow-2xl border border-slate-200 max-w-2xl w-full flex flex-col overflow-hidden my-auto animate-fadeIn">
+    
+    <!-- Quiz Header -->
+    <div class="px-6 py-4 bg-gradient-to-r from-brand-600 to-brand-700 text-white flex items-center justify-between shadow-xs">
+      <div class="flex items-center gap-2.5">
+        <div class="w-9 h-9 rounded-xl bg-white/20 text-white font-bold flex items-center justify-center text-lg">
+          🎯
+        </div>
+        <div>
+          <h2 class="text-base sm:text-lg font-bold">แบบทดสอบเรียนรู้ BPI Safety &amp; Compliance</h2>
+          <p class="text-xs text-brand-100">ทบทวนความเข้าใจเพื่อป้องกันเหตุการณ์เกิดซ้ำ</p>
+        </div>
+      </div>
+      <button onclick="closeQuizModal()" class="text-white/80 hover:text-white text-2xl font-bold leading-none">&times;</button>
+    </div>
+
+    <!-- Quiz Body -->
+    <div id="quizBody" class="p-6 overflow-y-auto space-y-5">
+      <!-- Quiz Content Injected by JS -->
+    </div>
+
+    <!-- Quiz Footer -->
+    <div id="quizFooter" class="px-6 py-3 bg-slate-50 border-t border-slate-100 flex items-center justify-between text-xs">
+      <span class="text-slate-500 font-mono" id="quizProgressText">คำถาม 1 / 6</span>
+      <button id="btnNextQuestion" onclick="nextQuestion()" class="px-4 py-2 bg-brand-600 hover:bg-brand-700 text-white font-bold rounded-xl shadow-xs transition-colors hidden">
+        ถัดไป →
+      </button>
+    </div>
+
+  </div>
+</div>
+
+<!-- Detailed Case Modal -->
+<div id="modalOverlay" class="fixed inset-0 bg-slate-900/50 backdrop-blur-xs z-50 hidden flex items-center justify-center p-3 sm:p-6 overflow-y-auto">
+  <div id="modalContainer" class="bg-white rounded-2xl shadow-2xl border border-slate-200 max-w-4xl w-full max-h-[92vh] flex flex-col overflow-hidden my-auto animate-fadeIn">
+    
+    <!-- Modal Header -->
+    <div id="modalHeader" class="px-6 py-4 bg-gradient-to-r from-brand-700 to-brand-600 text-white flex items-start justify-between gap-4">
+      <!-- Dynamic Content -->
+    </div>
+    
+    <!-- Navigation Tabs -->
+    <div class="bg-slate-50 border-b border-slate-200 px-4 sm:px-6 py-2 text-xs font-medium overflow-x-auto">
+      <div class="flex items-center gap-1.5 min-w-max">
+        <button onclick="switchModalTab('summary')" id="tabBtnSummary" class="py-1.5 px-3.5 rounded-xl bg-brand-600 text-white font-bold flex items-center gap-1.5 shadow-2xs transition-all"><span>📌 Summary</span></button>
+        <button onclick="switchModalTab('first')" id="tabBtnFirst" class="py-1.5 px-3.5 rounded-xl hover:bg-slate-200 text-slate-700 font-medium transition-colors"><span>📄 First Report</span></button>
+        <button onclick="switchModalTab('second')" id="tabBtnSecond" class="py-1.5 px-3.5 rounded-xl hover:bg-slate-200 text-slate-700 font-medium transition-colors"><span>🔍 Second Report (RCA)</span></button>
+        <button onclick="switchModalTab('third')" id="tabBtnThird" class="py-1.5 px-3.5 rounded-xl hover:bg-slate-200 text-slate-700 font-medium transition-colors"><span>📈 Third Report / Progress</span></button>
+        <button onclick="switchModalTab('overview')" id="tabBtnOverview" class="py-1.5 px-3.5 rounded-xl hover:bg-slate-200 text-slate-700 font-medium transition-colors"><span>🧭 Overview</span></button>
+        <button onclick="switchModalTab('final')" id="tabBtnFinal" class="py-1.5 px-3.5 rounded-xl hover:bg-slate-200 text-slate-700 font-medium transition-colors"><span>🏁 Final Report</span></button>
+      </div>
+    </div>
+
+    <!-- Modal Body -->
+    <div id="modalBody" class="p-6 overflow-y-auto space-y-5 flex-1 text-slate-800">
+      <!-- Dynamic Content -->
+    </div>
+
+    <!-- Modal Footer -->
+    <div class="px-6 py-3.5 bg-slate-50 border-t border-slate-200 flex items-center justify-between gap-3 text-xs">
+      <div class="text-slate-500 font-mono text-[11px]">BPI Safety Knowledge Standard</div>
+      <div class="flex items-center gap-2">
+        <button onclick="printCurrentModal()" class="px-3.5 py-1.5 bg-white border border-slate-200 hover:bg-slate-100 text-slate-700 font-medium rounded-xl transition-colors flex items-center gap-1.5 shadow-2xs">
+          <svg class="w-4 h-4 text-brand-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z"/></svg>
+          <span>พิมพ์เอกสาร</span>
+        </button>
+        <button onclick="closeModal()" class="px-4 py-1.5 bg-slate-800 hover:bg-slate-900 text-white font-semibold rounded-xl transition-colors">
+          ปิด
+        </button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Analytics Dashboard Modal -->
+<div id="analyticsOverlay" class="fixed inset-0 bg-slate-900/50 backdrop-blur-xs z-50 hidden flex items-center justify-center p-3 sm:p-6 overflow-y-auto">
+  <div class="bg-white rounded-2xl shadow-2xl border border-slate-200 max-w-4xl w-full max-h-[90vh] flex flex-col overflow-hidden my-auto animate-fadeIn">
+    <div class="px-6 py-4 bg-gradient-to-r from-brand-700 to-brand-600 text-white flex items-center justify-between">
+      <div class="flex items-center gap-2">
+        <div class="p-1.5 bg-white/20 text-white font-bold rounded-lg">📊</div>
+        <h2 class="text-base font-bold">Safety &amp; Compliance Analytics Dashboard</h2>
+      </div>
+      <button onclick="toggleAnalyticsModal()" class="text-white/80 hover:text-white text-2xl font-bold leading-none">&times;</button>
+    </div>
+    
+    <div class="p-6 overflow-y-auto space-y-6">
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+        <div class="bg-slate-50 p-4 rounded-xl border border-slate-200 space-y-3">
+          <h3 class="text-xs font-mono font-bold uppercase text-slate-600 tracking-wider">ระดับความรุนแรง (Severity)</h3>
+          <div id="chartSeverity" class="space-y-2.5"></div>
+        </div>
+
+        <div class="bg-slate-50 p-4 rounded-xl border border-slate-200 space-y-3">
+          <h3 class="text-xs font-mono font-bold uppercase text-slate-600 tracking-wider">แผนกที่เกิดเหตุ (Section)</h3>
+          <div id="chartSection" class="space-y-2.5"></div>
+        </div>
+
+        <div class="bg-slate-50 p-4 rounded-xl border border-slate-200 space-y-3 md:col-span-2">
+          <h3 class="text-xs font-mono font-bold uppercase text-slate-600 tracking-wider">หมวดหมู่เหตุการณ์ (Type of Incident)</h3>
+          <div id="chartType" class="space-y-2.5"></div>
+        </div>
+      </div>
+    </div>
+    
+    <div class="px-6 py-3 bg-slate-100 border-t border-slate-200 text-right">
+      <button onclick="toggleAnalyticsModal()" class="px-4 py-1.5 bg-slate-800 text-white font-medium text-xs rounded-xl hover:bg-slate-900">
+        ปิด
+      </button>
+    </div>
+  </div>
+</div>
+
+<footer class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pb-8 pt-2 w-full">
+  <div class="soft-card rounded-3xl px-5 py-4 flex flex-col md:flex-row md:items-center md:justify-between gap-3 text-sm text-slate-600">
+    <div>
+      <div class="font-semibold text-slate-800">GitHub-ready single HTML dashboard</div>
+      <div>นำไฟล์นี้ไปวางเป็น <span class="font-mono text-brand-700">index.html</span> บน GitHub ได้ทันที และให้อัปเดตข้อมูลผ่านการ import CSV จากหน้าเว็บ</div>
+    </div>
+    <div class="flex flex-wrap gap-2 text-xs">
+      <span class="px-3 py-1 rounded-full bg-brand-50 text-brand-700 border border-brand-100">Minimal Modern</span>
+      <span class="px-3 py-1 rounded-full bg-emerald-50 text-emerald-700 border border-emerald-100">CSV Update</span>
+      <span class="px-3 py-1 rounded-full bg-slate-100 text-slate-700 border border-slate-200">Interlinked Menus</span>
+    </div>
+  </div>
+</footer>
+
+<!-- Print Container -->
+<div id="printableArea" class="hidden"></div>
+
+<script>
+/* ==========================================================================
+   BPI CASE LIBRARY — DATA REPOSITORY & LOGIC ENGINE
+   ========================================================================== */
+
+const SEED_DATA = [
+  {
+    "Report No.": "BKKTR25003",
+    "Customer Name / Sub name": "Nissei Electric (Thailand) Co. Ltd.",
+    "Note": "เรซิน (total loass) no buyer",
+    "Case Decision": "Offensive",
+    "BPI Report": "BPI",
+    "Section": "Sea Import no.1",
+    "Date of occurrence of accident / nonconformity": "09-Oct-25",
+    "Report issue date": "22-Oct-25",
+    "1st or Innitial report QB Received date": "01-Apr-26",
+    "Progress date": "02-Apr-26",
+    "Occurrence area (base)": "Phanat Nikhom District, Chonburi",
+    "Liability": "OWN・OTHERS",
+    "Type of accident": "Accident",
+    "injury": "Not Injured - ไม่บาดเจ็บ",
+    "Damage": "Damaged - เกิดความเสียหาย",
+    "Incident Severity Level": "High",
+    "Classification  for second report ": "Transport & Handling",
+    "First Report": "The company hired Thammachat Transport Co., Ltd. to deliver Fluoro Polymer (480 drums) from Laem Chabang Port to Nakhon Ratchasima. On 9 October 2025 at about 2:30 AM, the truck lost control and fell into the road median due to driver negligence. As a result, all goods were damaged (leaking, broken, and contaminated) and could not be used. The total loss is USD 226,356. The damage was caused by the driver, who is an employee of the transport company.",
+    "Second Report": "Root Cause\nThe accident was caused by driver negligence.\nThe driver did not drive carefully and lost control of the truck.\nPossible factors include fatigue and poor visibility at night.\nCorrection (Corrective Actions)\nTrain the driver on safe driving and awareness.\nEnsure drivers get enough rest before driving.\nCheck vehicle condition before transport.\nUse GPS or monitoring systems to track driving behavior.\nImprove safety procedures for night driving.",
+    "Person Incharge": "SVB sales / Phongpitak , Kittipat, Rucharee ,Kojima\nCS : Natthawut \nFM : Ms. Kanok",
+    "Third Report ": "21 May 2026\n\nCargo is 100% damaged.\nThanmachat insurance (subcontractor): limit 3,000,000 THB (policy expired Feb 2026).\nTTIB insurance (KLine/KLL): limit 5,000,000 THB per case (last option).\n400,000 THB retention is withheld; truck repair cost not billed yet.\nBOI issue: Customer wants to auction scrap, but BOI not cleared. Buyer must pay import tax → lowers price.\nClaim registered with Thammachat (all references available).\nMissing document: official test report from Japan.\n\n27 May 2026\n\nCustomer opened bidding for damaged goods via email.\nInsurance company coordinated to observe the process.\n\n28 May 2026\n\nCustomer reported goods damaged and resin powder missing.\nNo buyers interested → risk that KLLTH may be responsible.\n\n11 June 2026\n\nClaim Update – 11 June 2026\n\nTotal claim amount: THB 7,759,658.96\nInsurance coverage (Thammachat): Up to THB 3,000,000\nMTO (Multimodal Transport Operator) liability: Maximum THB 5,000,000\nClaim amount remain is  4,759,658.96\nThe remaining amount may need to be pursued with the MTO; however, this has not yet been finalized and depends on the customer submitting the formal claim.\n\n3 Jul 2026 \nKey Conclusions \nThe customer has submitted the official Japan QC report directly to Nippon Kaiji Kentei (Thailand) Ltd. \nConsequently, Nissei’s insurance are now handling the claim recovery process directly between themselves, pursuing both the subcontractor (Thammachat Insurance - capped at THB 3,000,000) and KLL's MTO liability (TTIB - for the remaining balance ) \n\nScrap Auction Status:  The cargo auction/bidding was unsuccessful. Currently, there are no interested buyers due to the uncleared BOI import tax.\n\n16/07/26\nQB สอบถามประกันเรา MTO  (TTIB )  ยังไม่มีความคืบหน้าแต่อย่างใด\n\n24/07/26 by Sales Josave\nยังมีค่าใช้จ่ายเพิ่มเติมหลายรายการที่เกิดขึ้นโดยตรงจากอุบัติเหตุในการขนส่งครั้งนี้\nค่าใช้จ่ายดังกล่าว ไม่ได้อยู่ในความคุ้มครองของประกันภัย และ NISSEI ได้ชำระให้ K-LINE ไปก่อนเรียบร้อยแล้ว ได้แก่\n•\tค่าธรรมเนียม Detention จำนวน 29,600.00 บาท\n•\tค่า Lashing Pallet / ค่าขนส่ง จำนวน 49,220.00 บาท\nนอกจากนี้ทาง NISSEI อยู่ระหว่างปรึกษากับสำนักงาน BOI เกี่ยวกับแนวทางการดำเนินการสำหรับซากสินค้าที่อยู่ภายใต้สิทธิประโยชน์ BOI\nโดยขึ้นอยู่กับคำแนะนำอย่างเป็นทางการจาก BOI อาจมีค่าใช้จ่ายเพิ่มเติมเกิดขึ้น เช่น\n•\tค่าทำลายซากสินค้า\n•\tค่าใช้จ่ายที่เกี่ยวข้องกับ BOI\n•\tภาษีศุลกากร\n•\tภาษีอากร\n•\tและค่าใช้จ่ายอื่น ๆ ที่เกี่ยวข้อง\nเนื่องจากอุบัติเหตุครั้งนี้เกิดขึ้นระหว่างการขนส่งที่จัดการผ่าน K-LINE เราจึงใคร่ขอหารือกับท่านว่า ค่าใช้จ่ายเพิ่มเติมเหล่านี้สามารถพิจารณาให้ K-LINE รับผิดชอบ หรือมีแนวทางอื่นที่เหมาะสมในการดำเนินการร่วมกันได้หรือไม่\n\nในขั้นตอนนี้ เราต้องการเริ่มต้นด้วยการหารือและรับฟังความคิดเห็นของ K-LINE เกี่ยวกับค่าใช้จ่ายดังกล่าว\nเราหวังเป็นอย่างยิ่งว่าจะได้รับคำแนะนำและความร่วมมือจากท่าน \n///Translate ///24 Jul 2026 (Sales: Josave): NISSEI informed that several additional costs arising directly from the transportation accident are not covered by insurance and have already been paid to K-LINE, including:\n•\tDetention fee: THB 29,600\n•\tLashing pallet and transportation costs: THB 49,220\nNISSEI is also consulting with BOI regarding the disposal process for damaged goods under BOI privileges. Depending on BOI's guidance, additional expenses may arise, such as disposal costs, BOI-related charges, customs duties, taxes, and other associated costs.\nAs the accident occurred during transportation managed by K-LINE, NISSEI would like to discuss whether K-LINE could assume responsibility for these additional expenses or explore other mutually acceptable solutions. At this stage, NISSEI is seeking K-LINE's feedback and recommendations regarding these costs.\nAs of 18 Aug 2026, \nthe SEA TR team is still following up on this case, but there has been no update yet.\n\n29 Sep 2026\nRefer the below mail as I consulted with TTIB according the damage case of customer Nissei Elec. (Korat) found the accident since Oct. 8, 2025,\nwe/KLL have been named as the 3rd defendant in a court summons (ref. on PDF), which this case be pending on BPI - Accident List, \nanyway let’s me review as following:-\n\nWe have been notified from our Subcontractor/Tammachat Transport of a lawsuit related to Nissei Electric's Cargo Damage Claim – Insurance Subrogation.\ncurrently, KLL has not yet officially received the lawsuit notice or court documents. Which Tammachat Transport who has been named as Defendant No. 2, \nwhile KLL has been named as Defendant No. 3 in this case.\n\nWe have consulted with TTIB (our insurance broker – ref. on below mail), who advised that, in this type of situation, it is usual for the plaintiff to pursue recovery \nfrom multiple parties who may potentially be liable in order to recover the claimed amount.\n\nBased on the information currently available, the brief situation is as follows:\n\n1.\tLawsuit Case Overview \nThe scanned copy of the lawsuit documents received by the subcontractor is attached for your reference, with a brief English translation provided on pages 1 and 3.\n•\tPlaintiff: MSIG Insurance (Singapore) Pte. Ltd. (Nissei Electric's Insurance Company)\n•\tDefendant No. 1: Former driver of Tammachat (Defendant No. 2) who was involved in the accident; resigned and currently unreachable.\n•\tDefendant No. 2: Tammachat (KLL's Subcontractor)\n•\tDefendant No. 3: KLL\n•\tDefendant No. 4: Chubb Samaggi Insurance (Tammachat's car insurance company)\n\n•\tType of Case: Cargo Damage Claim – Insurance Subrogation\n•\tClaim Amount: 7,674,093.91 THB (Actual claim amount 7,404,293.62 + Interest 5% per year)\n•\tCurrent Status: KLL has not yet officially received the lawsuit notice / court documents. (Tammachat received on 19 Sep and Chubb received around 20 Sep)\n\n2.\tBrief Situation & Timeline\nPlease kindly find the brief timeline as attached excel file “(Nissei) Case Timeline”.\nAs you can see, KLL has been closely following up on the situation with all concerned parties.\n\nAt this stage, we assume that KLL may have been included in the lawsuit since the Customer’s insurer may also have concerns about the subcontractor’s ability to cover the full claim amount of approximately THB 7.7 million, as the subcontractor’s insurance coverage is limited to THB 3 million. \nHowever, these are our initial assumptions only, and the actual grounds of the claim against KLL should be confirmed after we receive and review the official lawsuit documents.\n\nFYI : The Customer’s insurer is based in Singapore because the transaction was arranged through Nissei Singapore as a triangular trade intermediary. Nissei Singapore placed the order through Nissei Japan, and the cargo insurance was therefore arranged in Singapore. As a result, the claim is being pursued by the Customer’s Singapore insurer.\n\n3.\tApproval Request\nAlthough KLL has not yet received the official court documents, we consider it necessary to make preparations in advance, particularly for coordination with our insurance company and the required legal response once the official documents are received.\nTherefore, we would like to request Management’s approval to appoint KLL’s regular law firm to support KLL in this case and coordinate with Tokio Marine (our insurance company) in preparation for the legal proceedings within Tomorrow (30 Sep).\nIf you would like to discuss this matter in more detail, please kindly let us know your availability, and we will arrange a meeting accordingly.\n\n\nWe will provide Management with further updates once KLL officially receives the lawsuit notice and additional details are confirmed.\nYour kind approval would be highly appreciated.\n29 Sep 2026 \nประชุมทีม ที่เกี่ยวข้อง Sales  Josave , Operation K Puchong , K Sunan, K, Prapat  QB team \nเพื่อหารือว่า  ธรรมชาติได้รับหมายศาล และเราต้องอย่างไรต่อ \n30 Sep 2026\n-\tNissei Elec. already settled claim with insurance.\n-\tOther additional expense will be our KLL responsibility which not yet concluding. \n\nYr kind review on PDF is correct!\n\nWaiting for yr kind consider then instruct us to cooperate with KLL’s lawyer via GA further.\nMD approved to contact Lawer ",
+    "Overview-TH": "• เหตุการณ์: รถขนส่งของซับคอนแทรค (บ.ธรรมชาติ ทรานสปอร์ต) คว่ำ สินค้าเสียหาย Total Loss มูลค่า 7.8 ล้านบาท (ประกันซับฯ คลุม 3 ล้านบาท)\n\n\n\n• ความคืบหน้าล่าสุด: KLL ถูกฟ้องเป็นจำเลยที่ 3 ตามหมายศาลจาก MSIG SG (ประกันของลูกค้า), หมายศาลส่งมาถึง KLL ตั้งแต่ 13 ก.ย. แต่เกิดการตกหล่น, การนัดทนายรอบแรกถูกเลื่อนออกไปเนื่องจากอยู่ระหว่างรอข้อสรุปการจัดจ้างทนายความ\n\n•\tIncident Brief : Total loss (≒7.8 mil THB) of 09 Oct 2025’s cargo by Subcon “Tammachart” (Insu coverage 3 mil THB)\n•\tCurrent Status (as of 9 Sep 2026) : Still waiting Nissei’s insurance company to conclude the final compensation amount. However, we are closely monitoring the latest situation.",
+    "Overview-EN": "• Incident: Cargo Total Loss (THB 7.8M) caused by subcontractor \"Thammachat Transport\" truck rollover (Subcon insurance limit: THB 3M).\n\n\n\n• Latest Progress: KLL named as the 3rd defendant in a court summons issued by MSIG SG (Nissei's cargo insurer). Summons arrived at KLL 23rd floor on 13 Sep but went missing. The 1st lawyer appointment was postponed due to pending legal counsel arrangements.",
+    "Final Report": "",
+    "Reporter": "Sea Import C/S",
+    "Sub contract name": "Thammachart transport",
+    "Date Follow-up": "1st-22/07/26\n2nd-23/07/26\n3Rd-7/08/26\n4th-14/08/26\n5th-2/09/26",
+    "Total claim": "7,759,658.96",
+    "KLL's insurance ": "",
+    "Customer's insurance ": 0.0,
+    "Sub's insurance ": "3,000,000",
+    "Claim under consideration ": "4,759,658.96",
+    "Fine by KLL": "0",
+    "Fine by customer": "0",
+    "REVENUE": "",
+    "COST": "",
+    "TRANSPORTATION": "",
+    "PROFIT": ""
+  }
+];
+
+const QUIZ_QUESTIONS = [
+  {
+    question: "เมื่อระบบ TIFFA แสดงหน้าต่างเตือน (Warning) เรื่องสิทธิลดหย่อนภาษี ในขั้นตอนจัดทำใบขนสินค้า พนักงาน EDI ควรปฏิบัติตามข้อใดจึงถูกต้องที่สุด?",
+    options: [
+      "กดเลือก 'No' เพื่อข้ามการแจ้งเตือนและส่งใบขนให้เร็วขึ้น",
+      "กดเลือก 'Yes' เพื่อย้อนกลับไปตรวจสอบความถูกต้องของข้อมูลทุกครั้ง",
+      "ปิดโปรแกรมและเริ่มพิมพ์เอกสารใบขนสินค้าใหม่ตั้งแต่ต้น",
+      "ละเว้นการตรวจสอบและส่งเอกสารให้ลูกค้าอนุมัติทันที"
+    ],
+    correctIndex: 1,
+    explanation: "ตามเคส SVBAI26001 เมื่อมีสัญญาณเตือนจากระบบ TIFFA พนักงานต้องกด 'Yes' เพื่อย้อนกลับไปตรวจสอบข้อมูลลดหย่อนภาษีซ้ำ ห้ามกด 'No' เพื่อข้ามการเตือนเด็ดขาด"
+  },
+  {
+    question: "มาตรการสำคัญเพื่อป้องกันเหตุการณ์ถอยรถบรรทุก/รถพ่วงชนเสาไฟฟ้าหรือผนังในพื้นที่แคบคืออะไร?",
+    options: [
+      "เร่งความเร็วในการถอยเพื่อไม่ให้กีดขวางการจราจร",
+      "ปฏิบัติตามหลัก 'หยุด-มอง-ไป' และขอผู้ช่วยดูจุดอับ (Spotter) ช่วยบอกทิศทาง",
+      "ใช้กระจกมองข้างอย่างเดียวโดยไม่ต้องขอผู้ช่วยดูจุดอับ",
+      "ถอยรถโดยไม่เปิดสัญญาณไฟเตือน"
+    ],
+    correctIndex: 1,
+    explanation: "ตามเคส BPRTR26002 และ BPRTR26006 การถอยรถพ่วงมีจุดอับสายตามาก ต้องใช้หลัก 'หยุด-มอง-ไป' ลงมาตรวจเช็กพื้นที่ และประสานขอ Spotter ช่วยดูทิศทาง"
+  },
+  {
+    question: "ข้อใดคือหลักการที่ถูกต้องในการจัดพิกัดศุลกากร (HS Code) สำหรับสินค้าใหม่หรือสินค้าที่มีความเสี่ยงสูง?",
+    options: [
+      "กำหนดพิกัดจากชื่อสินค้าคร่าวๆ โดยไม่ต้องขอเอกสารเพิ่ม",
+      "ใช้หลัก 'No Document, No Classify' ต้องมีภาพถ่าย รายละเอียด และคู่มือเทคนิคครบถ้วนก่อนกำหนดพิกัด",
+      "ให้ลูกค้าเป็นผู้ระบุ HS Code เพียงฝ่ายเดียวโดย KLL ไม่ต้องตรวจทาน",
+      "คัดลอก HS Code จากชิปเมนต์อื่นที่คล้ายกันโดยไม่ตรวจสอบ"
+    ],
+    correctIndex: 1,
+    explanation: "ตามเคส BKKSI26001 การจัดพิกัดอัตราอากรต้องมีเอกสารเทคนิคและรายละเอียดการใช้งานจริงครบถ้วน ('No Document, No Classify') และต้องผ่านการอนุมัติหากพบข้อมูลไม่ตรงกัน"
+  },
+  {
+    question: "เพื่อป้องกันปัญหาการพิมพ์หมายเลขตู้คอนเทนเนอร์ผิดพลาด (Wrong Container Number) มาตรการใดถูกนำมาปรับใช้?",
+    options: [
+      "ให้คนขับอ่านเลขตู้ผ่านทางโทรศัพท์เสียงเท่านั้น",
+      "เปลี่ยนเป็นระบบตรวจสอบ 2 ชั้น ให้ผู้รับเหมาช่วงพิมพ์ลงไฟล์ และทีม TR ตรวจทานซ้ำก่อนแจ้งลูกค้า",
+      "ยกเลิกการส่งหมายเลขตู้ให้ลูกค้าล่วงหน้า",
+      "ใช้การเขียนด้วยมือบนกระดาษเพียงอย่างเดียว"
+    ],
+    correctIndex: 1,
+    explanation: "ตามเคส BKKTR26001 เพื่อลด Human Error จากการมองภาพถ่ายแล้วคีย์มือ จึงเปลี่ยนให้ผู้รับเหมากรอกข้อมูลลงแบบฟอร์มดิจิทัล และทีม TR ทำการตรวจสอบชั้นที่สอง"
+  },
+  {
+    question: "เมื่อเกิดฝนตกหรือถนนเปียกลื่น มาตรการป้องกันการเกิดอุบัติเหตุเหินน้ำ (Hydroplaning) คือข้อใด?",
+    options: [
+      "เร่งความเร็วเกิน 80 กม./ชม. เพื่อให้ผ่านจุดน้ำขังเร็วขึ้น",
+      "ลดความเร็วไม่เกิน 40 กม./ชม. รักษาระยะห่าง 6-8 วินาที และหลีกเลี่ยงการเบรกกะทันหัน",
+      "ขับชิดท้ายคันหน้าเพื่ออาศัยรอยยางแห้ง",
+      "ดับเครื่องยนต์แล้วปล่อยรถไหลผ่านจุดน้ำท่วม"
+    ],
+    correctIndex: 1,
+    explanation: "ตามเคส BKKTR26002 การขับขี่บนถนนเปียกต้องจำกัดความเร็วไม่เกิน 40 กม./ชม. และเพิ่มระยะห่างเป็น 6-8 วินาที เพื่อป้องกันยางสูญเสียการยึดเกาะถนน"
+  },
+  {
+    question: "ก่อนปล่อยตู้คอนเทนเนอร์ออกจากลานหรือคลังสินค้า ขั้นตอนการตรวจสอบใดต้องปฏิบัติตามอย่างเคร่งครัด?",
+    options: [
+      "ตรวจสอบโดยคนขับเพียงคนเดียว",
+      "บังคับตรวจสอบ 3 จุดร่วมกัน (คนขับ / CS / ยาม) เพื่อยืนยันเลขตู้คอนเทนเนอร์ตรงกับเอกสาร",
+      "ตรวจสอบเฉพาะเมื่อได้รับคำสั่งจากลูกค้าเท่านั้น",
+      "ตัดแมวน้ำ (Seal) ตรวจสอบสินค้าภายในทุกครั้ง"
+    ],
+    correctIndex: 1,
+    explanation: "ตามเคส BPRTR26003 ป้องกันการหยิบตู้ผิดตู้ด้วยการบังคับ Checkpoint 3 จุด ได้แก่ คนขับ, CS และเจ้าหน้าที่รักษาความปลอดภัยก่อนปล่อยตู้"
+  }
+  ,{
+    question: "เมื่อสายเรือเปลี่ยนขั้นตอนการขอ Free Time ไปเป็นระบบ E-platform ทีมปฏิบัติการควรทำอย่างไรเพื่อป้องกัน Demurrage/Storage?",
+    options: [
+      "ใช้แบบฟอร์มเดิมต่อไปโดยไม่ต้องตรวจสถานะ",
+      "ขอ Free Time ทันทีเมื่อเปิด Booking และตรวจสอบสถานะอนุมัติในระบบก่อนออก Pre-Alert",
+      "รอให้เรือถึงปลายทางก่อนจึงยื่นขอ",
+      "ให้ลูกค้าติดต่อสายเรือเองทั้งหมด"
+    ],
+    correctIndex: 1,
+    explanation: "บทเรียนจากเคส BKKSE26001 คือไม่ควรพึ่งแบบฟอร์มเดิมเมื่อระบบสายเรือเปลี่ยน ต้องยื่นขอ Free Time ตั้งแต่ Booking และยืนยันผลอนุมัติก่อนเรือถึงปลายทาง"
+  },
+  {
+    question: "หากได้รับ Commercial Invoice ไม่ครบ แต่ยอดจำนวน/น้ำหนักใน HAWB ไม่สอดคล้องกัน วิธีปฏิบัติที่เหมาะสมคือข้อใด?",
+    options: [
+      "ใช้ Invoice ที่มีอยู่ทำใบขนก่อนเพื่อประหยัดเวลา",
+      "หยุดดำเนินการและตรวจจำนวน Invoice, จำนวนสินค้า และน้ำหนักเทียบ HAWB พร้อมให้ผู้เกี่ยวข้องตรวจซ้ำ",
+      "แก้ตัวเลขใน HAWB ให้ตรงกับ Invoice ที่ได้รับ",
+      "ส่งข้อมูลเข้าศุลกากรแล้วค่อยแก้ภายหลัง"
+    ],
+    correctIndex: 1,
+    explanation: "เคส SVBAI26002 ชี้ให้เห็นความสำคัญของการ reconciliation เอกสารและการตรวจแบบหลายชั้นก่อนยื่นข้อมูล"
+  },
+  {
+    question: "ก่อนเริ่มขนถ่ายสินค้าจากรถบรรทุกแบบปีกข้าง (Wing Body) ต้องตรวจจุดใดเป็นพิเศษ?",
+    options: [
+      "ตรวจเฉพาะแรงดันลมยาง",
+      "พับเก็บกลอนล็อกปีกทุกตัวให้เรียบร้อยก่อนอนุญาตให้ Forklift เริ่มงาน",
+      "เปิดปีกค้างไว้และให้ Forklift ระวังเอง",
+      "ถอดกระจกมองข้างเพื่อเพิ่มพื้นที่"
+    ],
+    correctIndex: 1,
+    explanation: "บทเรียนจากเคส SVBAT26001 คือกลอนล็อกปีกที่ไม่ถูกพับเก็บอาจถูกดันกระแทกยางจนเสียหาย จึงต้องมี pre-unloading inspection"
+  },
+  {
+    question: "หากพบอุปกรณ์ช่วงล่างหรือระดับของเหลวรถผิดปกติก่อนออกงาน แนวทางใดสอดคล้องกับการป้องกันเชิงระบบมากที่สุด?",
+    options: [
+      "ออกงานก่อนและแจ้งซ่อมเมื่อกลับถึงฐาน",
+      "บันทึกใน checklist หยุดใช้งานเมื่อจำเป็น และให้ตรวจแก้ไขก่อนออกเดินทาง",
+      "ให้คนขับตัดสินใจจากประสบการณ์โดยไม่ต้องบันทึก",
+      "ตรวจเฉพาะเมื่อรถมีเสียงผิดปกติเท่านั้น"
+    ],
+    correctIndex: 1,
+    explanation: "หลายเคสด้านอุปกรณ์ชำรุดสะท้อนว่าการตรวจสภาพก่อนเดินทางและการบันทึก checklist เป็น control ที่ช่วยป้องกันเหตุซ้ำได้"
+  }
+
+];
+
+let ALL_CASES = [];
+let bookmarkedIds = new Set(JSON.parse(localStorage.getItem('bpi_bookmarks') || '[]'));
+let showOnlyBookmarks = false;
+let selectedTypeFilter = 'ALL'; // Primary category filter
+let activeFilters = {
+  severity: new Set(),
+  section: new Set(),
+  classification: new Set()
+};
+let searchTerm = '';
+let currentModalCaseId = null;
+let activeModalTab = 'summary';
+
+// Quiz State Variables
+let currentQuizIndex = 0;
+let quizScore = 0;
+let userAnswers = [];
+let currentSort = 'priority';
+let lastImportedAt = null;
+let csvHasBeenImported = false;
+
+// Category Definitions for Modern Minimalist Cards
+const CATEGORIES = [
+  {
+    id: 'ALL',
+    nameTh: 'เคสทั้งหมด',
+    nameEn: 'All Incidents',
+    desc: 'รวมทุกบทเรียนและข้อผิดพลาด',
+    iconSvg: `<svg class="w-6 h-6 text-brand-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10"/></svg>`,
+    badgeBg: 'bg-brand-50 text-brand-700 border-brand-200'
+  },
+  {
+    id: 'Accident',
+    nameTh: 'อุบัติเหตุ',
+    nameEn: 'Accident',
+    desc: 'รถชน, เฉี่ยวชน, ตกคูน้ำ, เครื่องจักรล้ม',
+    iconSvg: `<svg class="w-6 h-6 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/></svg>`,
+    badgeBg: 'bg-red-50 text-red-700 border-red-200'
+  },
+  {
+    id: 'Delay',
+    nameTh: 'ความล่าช้า',
+    nameEn: 'Delay',
+    desc: 'ตู้ตกค้าง, ไม่ทันกำหนด, Free time',
+    iconSvg: `<svg class="w-6 h-6 text-amber-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>`,
+    badgeBg: 'bg-amber-50 text-amber-700 border-amber-200'
+  },
+  {
+    id: 'Wrong Input Data',
+    nameTh: 'ข้อมูลผิดพลาด',
+    nameEn: 'Wrong Input Data',
+    desc: 'คีย์ EDI ผิด, สาขาผิด, ข้ามเตือน TIFFA',
+    iconSvg: `<svg class="w-6 h-6 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9.75 17L9 20l-1 1h8l-1-1-.75-3M3 13h18M5 17h14a2 2 0 002-2V5a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"/></svg>`,
+    badgeBg: 'bg-blue-50 text-blue-700 border-blue-200'
+  },
+  {
+    id: 'Mistake',
+    nameTh: 'ข้อผิดพลาดปฏิบัติงาน',
+    nameEn: 'Mistake',
+    desc: 'สลับเลขตู้, หยิบตู้ผิด, HS Code ผิด',
+    iconSvg: `<svg class="w-6 h-6 text-orange-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>`,
+    badgeBg: 'bg-orange-50 text-orange-700 border-orange-200'
+  },
+  {
+    id: 'Broken',
+    nameTh: 'อุปกรณ์ชำรุด',
+    nameEn: 'Broken / Equipment',
+    desc: 'แหนบหัก, สลัก U-Bolt, น้ำมันคลัตช์',
+    iconSvg: `<svg class="w-6 h-6 text-emerald-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/></svg>`,
+    badgeBg: 'bg-emerald-50 text-emerald-700 border-emerald-200'
+  }
+];
+
+function normalizeCases(data) {
+  return data.map(c => {
+    const id = (c.id || c['Report No.'] || c['No.'] || '').trim();
+    const severity = normalizeSeverity(c.severity || c['Incident Severity Level'] || 'Low');
+    
+    const firstRaw = (c.full_first || c['First Report'] || c['First report'] || '').trim();
+    const secondRaw = (c.full_second || c['Second Report'] || c['Second report'] || '').trim();
+    const thirdRaw = (c.full_third || c['Third Report '] || c['Third Report'] || c['Third report'] || '').trim();
+    const legacyOverview = (c.overview || c['Overview'] || '').trim();
+    const overviewThRaw = (c.overview_th || c['Overview-TH'] || c['overview-th'] || c['Overview TH'] || '').trim();
+    const overviewEnRaw = (c.overview_en || c['Overview-EN'] || c['overview-en'] || c['Overview EN'] || legacyOverview || '').trim();
+    const overviewRaw = (overviewThRaw || overviewEnRaw || legacyOverview).trim();
+    const finalRaw = (c.full_final || c['Final Report'] || c['Final report'] || '').trim();
+
+    let cause = (c.cause_th || c.cause_en || c.cause || extractSnippet(secondRaw || firstRaw, ['root cause', 'cause', 'สาเหตุ']) || firstRaw.substring(0, 250)).trim();
+    let prevention = (c.prevention_th || c.prevention_en || c.prevention || extractSnippet(secondRaw || firstRaw, ['countermeasure', 'corrective', 'prevention', 'การป้องกัน']) || secondRaw.substring(0, 250)).trim();
+
+    if (!cause) cause = "อยู่ระหว่างการสอบสวนสาเหตุ / Incident under investigation";
+    if (!prevention) prevention = "ปฏิบัติตามขั้นตอนมาตรฐาน และจัดอบรมทบทวนความปลอดภัย / Enforce SOP and refresher training";
+
+    let rawType = (c.type || c['Type of accident'] || c['Type'] || 'Other').trim();
+    let standardizedType = rawType;
+    const lType = rawType.toLowerCase();
+    if (lType.includes('accident')) standardizedType = 'Accident';
+    else if (lType.includes('delay')) standardizedType = 'Delay';
+    else if (lType.includes('wrong input')) standardizedType = 'Wrong Input Data';
+    else if (lType.includes('mistake')) standardizedType = 'Mistake';
+    else if (lType.includes('broken')) standardizedType = 'Broken';
+
+    return {
+      id: id,
+      customer: (c.customer || c['Customer Name / Sub name'] || c['Customer'] || 'ไม่ระบุลูกค้า').trim(),
+      date: (c.date || c['Date of occurrence of accident / nonconformity'] || c['Date'] || '').trim(),
+      area: (c.area || c['Occurrence area (base)'] || c['Area'] || '').trim(),
+      section: (c.section || c['Section'] || 'Unspecified').trim(),
+      type: standardizedType,
+      rawType: rawType,
+      severity: severity,
+      classification: (c.classification || c['Classification  for second report '] || c['Classification for second report'] || c['Classification'] || 'Unclassified').trim(),
+      injury: c.injury || 'Not concerned',
+      damage: c.damage || 'Not concerned',
+      note: (c.note || c['Note'] || '').trim(),
+      cause: cause,
+      prevention: prevention,
+      full_first: firstRaw,
+      full_second: secondRaw,
+      full_third: thirdRaw,
+      overview: overviewRaw,
+      overview_th: overviewThRaw,
+      overview_en: overviewEnRaw,
+      full_final: finalRaw
+    };
+  });
+}
+
+function extractSnippet(text, keywords) {
+  if (!text) return '';
+  const lower = text.toLowerCase();
+  for (const kw of keywords) {
+    const idx = lower.indexOf(kw);
+    if (idx !== -1) {
+      return text.substring(idx + kw.length, idx + kw.length + 300).replace(/^[:\n\t -]+/, '').trim();
+    }
+  }
+  return '';
+}
+
+function normalizeSeverity(s) {
+  if (!s) return 'Low';
+  const l = s.toString().toLowerCase().trim();
+  if (l.includes('high')) return 'High';
+  if (l.includes('med')) return 'Medium';
+  return 'Low';
+}
+
+function getTypeIcon(type) {
+  const t = (type || '').toLowerCase();
+  if (t.includes('accident')) return '💥';
+  if (t.includes('wrong input')) return '⌨️';
+  if (t.includes('mistake')) return '⚠️';
+  if (t.includes('delay')) return '⏱️';
+  if (t.includes('broken')) return '🔧';
+  if (t.includes('damage')) return '📦';
+  return '📌';
+}
+
+
+function hasOverview(c) {
+  return Boolean((c?.overview_th || '').trim() || (c?.overview_en || '').trim() || (c?.overview || '').trim());
+}
+
+function escapeHtml(value) {
+  return String(value ?? '')
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#039;');
+}
+
+function renderBilingualOverview(c, compact = false) {
+  const th = (c.overview_th || '').trim();
+  const en = (c.overview_en || '').trim();
+  const legacy = (c.overview || '').trim();
+  const thText = th || (en ? '' : legacy);
+  const enText = en || (!th ? legacy : '');
+  const emptyTh = 'ยังไม่มีข้อมูล Overview ภาษาไทยใน CSV';
+  const emptyEn = 'No English overview is available in the CSV.';
+  return `
+    <div class="overview-compare ${compact ? 'overview-compact' : ''}">
+      <section class="overview-lang-cell">
+        <div class="overview-lang-head"><span>🇹🇭 Overview ภาษาไทย</span><span class="normal-case tracking-normal text-slate-400">Overview-TH</span></div>
+        <div class="overview-lang-body ${thText ? '' : 'text-slate-400 italic'}">${escapeHtml(thText || emptyTh)}</div>
+      </section>
+      <section class="overview-lang-cell">
+        <div class="overview-lang-head"><span>🇬🇧 English Overview</span><span class="normal-case tracking-normal text-slate-400">Overview-EN</span></div>
+        <div class="overview-lang-body ${enText ? '' : 'text-slate-400 italic'}">${escapeHtml(enText || emptyEn)}</div>
+      </section>
+    </div>`;
+}
+
+function scrollToSection(id) {
+  const el = document.getElementById(id);
+  if (el) el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+}
+
+function focusCasesSection() {
+  scrollToSection('casesSection');
+}
+
+function clearStateOnly() {
+  selectedTypeFilter = 'ALL';
+  activeFilters = { severity: new Set(), classification: new Set(), section: new Set() };
+  searchTerm = '';
+  showOnlyBookmarks = false;
+  document.getElementById('searchInput').value = '';
+  const btn = document.getElementById('btnToggleBookmarks');
+  btn.classList.remove('bg-brand-50', 'border-brand-300', 'text-brand-900');
+  document.getElementById('starIconFilter').classList.add('text-slate-400');
+  document.getElementById('starIconFilter').classList.remove('text-brand-600', 'fill-brand-600');
+}
+
+function parseCaseDate(str) {
+  if (!str) return new Date('1900-01-01');
+  const trimmed = String(str).trim();
+  const direct = new Date(trimmed);
+  if (!isNaN(direct)) return direct;
+  const m = trimmed.match(/^(\d{1,2})-([A-Za-z]{3})-(\d{2,4})$/);
+  if (m) {
+    const months = {jan:0,feb:1,mar:2,apr:3,may:4,jun:5,jul:6,aug:7,sep:8,oct:9,nov:10,dec:11};
+    let year = Number(m[3]);
+    if (year < 100) year += 2000;
+    return new Date(year, months[m[2].toLowerCase()] ?? 0, Number(m[1]));
+  }
+  return new Date('1900-01-01');
+}
+
+function sortCases(list) {
+  const severityWeight = { High: 3, Medium: 2, Low: 1 };
+  return [...list].sort((a, b) => {
+    if (currentSort === 'latest') return parseCaseDate(b.date) - parseCaseDate(a.date);
+    if (currentSort === 'oldest') return parseCaseDate(a.date) - parseCaseDate(b.date);
+    if (currentSort === 'customer') return String(a.customer || '').localeCompare(String(b.customer || ''), 'th');
+
+    const sevDiff = (severityWeight[b.severity] || 0) - (severityWeight[a.severity] || 0);
+    if (sevDiff !== 0) return sevDiff;
+    const overviewDiff = Number(hasOverview(b)) - Number(hasOverview(a));
+    if (overviewDiff !== 0) return overviewDiff;
+    return parseCaseDate(b.date) - parseCaseDate(a.date);
+  });
+}
+
+function renderDatasetStatus() {
+  const target = document.getElementById('datasetStatus');
+  if (!target) return;
+  const reminder = document.getElementById('csvReminderBanner');
+  if (reminder) reminder.classList.toggle('hidden', csvHasBeenImported);
+  const importedText = lastImportedAt
+    ? `อัปเดตล่าสุด: ${lastImportedAt.toLocaleDateString('th-TH')} ${lastImportedAt.toLocaleTimeString('th-TH', {hour:'2-digit', minute:'2-digit'})}`
+    : 'Preview Mode: แสดงตัวอย่าง 1 เคส — กรุณา Upload CSV ล่าสุดเพื่อโหลดข้อมูลจริง';
+  target.innerHTML = `
+    <div class="font-semibold ${csvHasBeenImported ? 'text-emerald-700' : 'text-rose-700'}">${csvHasBeenImported ? '✓ CSV Data Loaded' : '⚠ กรุณา Upload CSV ก่อนใช้งาน'}</div>
+    <div class="mt-1">จำนวนเคสที่กำลังแสดง <strong class="text-brand-700">${ALL_CASES.length}</strong> เคส · Bookmark <strong class="text-emerald-700">${bookmarkedIds.size}</strong> รายการ</div>
+    <div class="mt-1 ${csvHasBeenImported ? 'text-slate-500' : 'text-rose-600 font-medium'}">${importedText}</div>
+  `;
+}
+
+function renderHeroStats(filteredCases = null) {
+  const target = document.getElementById('heroStats');
+  if (!target) return;
+  const filtered = filteredCases || ALL_CASES.filter(matchesFilters);
+  const total = ALL_CASES.length;
+  const high = ALL_CASES.filter(c => c.severity === 'High').length;
+  const overviewCount = ALL_CASES.filter(hasOverview).length;
+  const finalMissing = ALL_CASES.filter(c => !c.full_final).length;
+  const cards = [
+    { label: 'Visible Cases', value: filtered.length, sub: `จากทั้งหมด ${total} เคส`, accent: 'text-brand-700', action: "focusCasesSection();", emoji: '📘' },
+    { label: 'High Severity', value: high, sub: 'ควรเน้นศึกษาก่อน', accent: 'text-rose-600', action: "applyQuickView('high');", emoji: '🚨' },
+    { label: 'With Overview', value: overviewCount, sub: 'อ่านสถานะได้รวดเร็ว', accent: 'text-sky-600', action: "applyQuickView('overview');", emoji: '🧭' },
+    { label: 'Need Final Report', value: finalMissing, sub: 'ควรติดตามการปิดเคส', accent: 'text-emerald-700', action: "applyQuickView('needFinal');", emoji: '🏁' }
+  ];
+  target.innerHTML = cards.map(card => `
+    <button onclick="${card.action}" class="kpi-card active-kpi soft-card rounded-2xl p-4 text-left group">
+      <div class="flex items-start justify-between gap-3">
+        <div>
+          <div class="text-[11px] font-mono font-bold uppercase tracking-wider text-slate-500">${card.label}</div>
+          <div class="mt-2 text-2xl sm:text-3xl font-bold ${card.accent}">${card.value}</div>
+          <div class="mt-1 text-xs text-slate-500">${card.sub}</div>
+        </div>
+        <div class="w-10 h-10 rounded-2xl bg-slate-100 border border-slate-200 flex items-center justify-center text-lg">${card.emoji}</div>
+      </div>
+    </button>
+  `).join('');
+}
+
+function renderActiveContext() {
+  const target = document.getElementById('activeContextChips');
+  if (!target) return;
+  const bits = [];
+  if (selectedTypeFilter !== 'ALL') bits.push({label:`Type: ${selectedTypeFilter}`});
+  ['severity','section','classification'].forEach(key => {
+    activeFilters[key].forEach(v => bits.push({label:`${key[0].toUpperCase()+key.slice(1)}: ${v}`}));
+  });
+  if (searchTerm && !searchTerm.startsWith('__')) bits.push({label:`Search: ${searchTerm}`});
+  if (showOnlyBookmarks) bits.push({label:'Bookmarks only'});
+  if (searchTerm === '__has_overview__') bits.push({label:'Only cases with Overview'});
+  if (searchTerm === '__need_final__') bits.push({label:'Need Final Report'});
+  bits.push({label:`Sort: ${currentSort}`});
+
+  if (bits.length === 1 && !countActiveFilters()) {
+    target.innerHTML = '<span class="text-xs text-slate-500">ยังไม่ได้เลือกตัวกรองพิเศษ — ระบบกำลังแสดงคลังบทเรียนทั้งหมด</span>';
+    return;
+  }
+  target.innerHTML = bits.map(item => `<span class="px-3 py-1 rounded-full bg-white border border-slate-200 text-slate-700 text-xs font-medium">${item.label}</span>`).join('') + `<button onclick="resetToAllCases()" class="px-3 py-1 rounded-full bg-slate-800 text-white text-xs font-semibold">Reset</button>`;
+}
+
+function escapeJsValue(value) {
+  return String(value || '').replace(/\\/g, '\\\\').replace(/'/g, "\'");
+}
+
+function focusFacet(facetKey, value, e=null) {
+  if (e) e.stopPropagation();
+  if (facetKey === 'type') {
+    selectedTypeFilter = value;
+  } else {
+    activeFilters[facetKey] = new Set([value]);
+  }
+  renderCategoryCards();
+  renderChips();
+  updateClearFilterButton();
+  renderGrid();
+  focusCasesSection();
+}
+
+function applyQuickView(view) {
+  clearStateOnly();
+  if (view === 'high') activeFilters.severity = new Set(['High']);
+  if (view === 'overview') searchTerm = '__has_overview__';
+  if (view === 'needFinal') searchTerm = '__need_final__';
+  if (view === 'bookmarks') showOnlyBookmarks = true;
+  renderCategoryCards();
+  renderChips();
+  updateClearFilterButton();
+  renderGrid();
+  highlightQuickAction(view);
+  focusCasesSection();
+}
+
+function highlightQuickAction(view) {
+  document.querySelectorAll('#quickActionsBar .nav-pill').forEach(btn => btn.classList.remove('active'));
+  const map = { high: 1, overview: 2, needFinal: 3, bookmarks: 4 };
+  const buttons = document.querySelectorAll('#quickActionsBar .nav-pill');
+  if (view && map[view] !== undefined && buttons[map[view]]) buttons[map[view]].classList.add('active');
+  else if (buttons[0]) buttons[0].classList.add('active');
+}
+
+function renderCategoryCards() {
+  const grid = document.getElementById('categoryGrid');
+  const indicator = document.getElementById('categoryActiveIndicator');
+
+  // Calculate live counts per category
+  const typeCounts = {
+    'ALL': ALL_CASES.length,
+    'Accident': ALL_CASES.filter(c => c.type === 'Accident').length,
+    'Delay': ALL_CASES.filter(c => c.type === 'Delay').length,
+    'Wrong Input Data': ALL_CASES.filter(c => c.type === 'Wrong Input Data').length,
+    'Mistake': ALL_CASES.filter(c => c.type === 'Mistake').length,
+    'Broken': ALL_CASES.filter(c => c.type === 'Broken').length
+  };
+
+  grid.innerHTML = CATEGORIES.map(cat => {
+    const isSelected = selectedTypeFilter === cat.id;
+    const count = typeCounts[cat.id] || 0;
+
+    const activeStyles = isSelected
+      ? 'border-brand-600 bg-white ring-2 ring-brand-500/20 shadow-md scale-[1.02]'
+      : 'border-slate-200/90 bg-white/90 hover:bg-white hover:border-brand-300 shadow-2xs';
+
+    const headerBadge = isSelected
+      ? 'bg-brand-600 text-white'
+      : 'bg-slate-100 text-slate-700';
+
+    return `
+      <div onclick="selectCategory('${cat.id}')" class="category-card p-4 rounded-2xl border ${activeStyles} cursor-pointer flex flex-col justify-between group">
+        <div>
+          <div class="flex items-center justify-between mb-2.5">
+            <div class="p-2 rounded-xl bg-slate-50 border border-slate-100 group-hover:bg-brand-50/60 transition-colors">
+              ${cat.iconSvg}
+            </div>
+            <span class="px-2 py-0.5 rounded-full font-mono text-[11px] font-bold ${headerBadge}">
+              ${count} เคส
+            </span>
+          </div>
+          <div class="space-y-0.5">
+            <h3 class="text-sm font-bold text-slate-900 group-hover:text-brand-600 transition-colors">
+              ${cat.nameTh}
+            </h3>
+            <p class="text-[11px] font-mono text-slate-400 uppercase tracking-tight">
+              ${cat.nameEn}
+            </p>
+          </div>
+        </div>
+        <p class="text-[11px] text-slate-500 mt-2.5 pt-2 border-t border-slate-100 leading-snug line-clamp-2">
+          ${cat.desc}
+        </p>
+      </div>
+    `;
+  }).join('');
+
+  if (selectedTypeFilter === 'ALL') {
+    indicator.innerHTML = `<span class="inline-block w-2 h-2 rounded-full bg-brand-600"></span> กำลังแสดง: <strong>ทุกประเภทเหตุการณ์ (${ALL_CASES.length})</strong>`;
+  } else {
+    const currentCat = CATEGORIES.find(c => c.id === selectedTypeFilter);
+    const count = typeCounts[selectedTypeFilter] || 0;
+    indicator.innerHTML = `
+      <span class="inline-block w-2 h-2 rounded-full bg-brand-600"></span> 
+      กำลังกรอง: <strong class="text-brand-700">${currentCat ? currentCat.nameTh : selectedTypeFilter} (${count})</strong>
+      <button onclick="selectCategory('ALL')" class="ml-1.5 underline text-slate-500 hover:text-slate-800 text-[11px]">แสดงทั้งหมด</button>
+    `;
+  }
+}
+
+function selectCategory(catId) {
+  selectedTypeFilter = catId;
+  renderCategoryCards();
+  updateClearFilterButton();
+  renderGrid();
+  highlightQuickAction();
+
+  // Gentle scroll down to cases section if on mobile
+  if (window.innerWidth < 768) {
+    const el = document.getElementById('casesSection');
+    if (el) el.scrollIntoView({ behavior: 'smooth' });
+  }
+}
+
+function toggleBookmark(caseId, e) {
+  if (e) e.stopPropagation();
+  if (bookmarkedIds.has(caseId)) {
+    bookmarkedIds.delete(caseId);
+  } else {
+    bookmarkedIds.add(caseId);
+  }
+  localStorage.setItem('bpi_bookmarks', JSON.stringify([...bookmarkedIds]));
+  updateBookmarkUI();
+  renderGrid();
+  renderDatasetStatus();
+}
+
+function toggleBookmarkFilter() {
+  showOnlyBookmarks = !showOnlyBookmarks;
+  const btn = document.getElementById('btnToggleBookmarks');
+  const icon = document.getElementById('starIconFilter');
+  if (showOnlyBookmarks) {
+    btn.classList.add('bg-brand-50', 'border-brand-300', 'text-brand-900');
+    icon.classList.remove('text-slate-400');
+    icon.classList.add('text-brand-600', 'fill-brand-600');
+  } else {
+    btn.classList.remove('bg-brand-50', 'border-brand-300', 'text-brand-900');
+    icon.classList.add('text-slate-400');
+    icon.classList.remove('text-brand-600', 'fill-brand-600');
+  }
+  updateClearFilterButton();
+  renderGrid();
+  highlightQuickAction(showOnlyBookmarks ? 'bookmarks' : null);
+}
+
+function updateBookmarkUI() {
+  document.getElementById('bookmarkCount').textContent = bookmarkedIds.size;
+}
+
+function getUniqueCounts(field) {
+  const counts = {};
+  ALL_CASES.forEach(c => {
+    const val = c[field] || 'Unspecified';
+    counts[val] = (counts[val] || 0) + 1;
+  });
+  return Object.entries(counts).sort((a, b) => b[1] - a[1]);
+}
+
+function renderChips() {
+  const renderGroup = (containerId, facetKey, items) => {
+    const el = document.getElementById(containerId);
+    el.innerHTML = items.map(([val, count]) => {
+      const active = activeFilters[facetKey].has(val);
+      const activeClass = active 
+        ? 'bg-brand-600 text-white border-brand-600 shadow-2xs font-semibold' 
+        : 'bg-slate-50 text-slate-700 border-slate-200 hover:border-slate-300 hover:bg-slate-100';
+      return `
+        <button onclick="toggleFilter('${facetKey}', '${val.replace(/'/g, "\\'")}')" class="px-2.5 py-1 border rounded-xl text-xs font-medium transition-all flex items-center gap-1.5 ${activeClass}">
+          <span>${val}</span>
+          <span class="px-1.5 py-0.2 text-[10px] rounded-full ${active ? 'bg-brand-700 text-white' : 'bg-slate-200 text-slate-600'} font-mono">${count}</span>
+        </button>
+      `;
+    }).join('');
+  };
+
+  renderGroup('chipsSeverity', 'severity', [
+    ['High', ALL_CASES.filter(c => c.severity === 'High').length],
+    ['Medium', ALL_CASES.filter(c => c.severity === 'Medium').length],
+    ['Low', ALL_CASES.filter(c => c.severity === 'Low').length]
+  ]);
+  renderGroup('chipsSection', 'section', getUniqueCounts('section'));
+  renderGroup('chipsClass', 'classification', getUniqueCounts('classification'));
+}
+
+function toggleFilter(facetKey, value) {
+  if (activeFilters[facetKey].has(value)) {
+    activeFilters[facetKey].delete(value);
+  } else {
+    activeFilters[facetKey].add(value);
+  }
+  renderChips();
+  updateClearFilterButton();
+  renderGrid();
+  highlightQuickAction();
+}
+
+function countActiveFilters() {
+  let count = 0;
+  for (const key in activeFilters) {
+    count += activeFilters[key].size;
+  }
+  if (selectedTypeFilter !== 'ALL') count++;
+  if (searchTerm) count++;
+  if (showOnlyBookmarks) count++;
+  return count;
+}
+
+function updateClearFilterButton() {
+  const activeCount = countActiveFilters();
+  const badge = document.getElementById('activeFilterBadge');
+  const searchClearBtn = document.getElementById('btnClearSearch');
+
+  if (activeCount > 0) {
+    badge.textContent = activeCount;
+    badge.classList.remove('hidden');
+  } else {
+    badge.classList.add('hidden');
+  }
+
+  if (searchTerm) {
+    searchClearBtn.classList.remove('hidden');
+  } else {
+    searchClearBtn.classList.add('hidden');
+  }
+}
+
+function clearSearchOnly() {
+  searchTerm = '';
+  document.getElementById('searchInput').value = '';
+  updateClearFilterButton();
+  renderGrid();
+  highlightQuickAction();
+}
+
+function resetToAllCases() {
+  clearStateOnly();
+  currentSort = document.getElementById('sortSelect') ? document.getElementById('sortSelect').value || 'priority' : currentSort;
+  renderCategoryCards();
+  renderChips();
+  updateClearFilterButton();
+  renderGrid();
+  highlightQuickAction();
+}
+
+function matchesFilters(c) {
+  if (showOnlyBookmarks && !bookmarkedIds.has(c.id)) return false;
+  if (selectedTypeFilter !== 'ALL' && c.type !== selectedTypeFilter) return false;
+
+  for (const facet of ['severity', 'section', 'classification']) {
+    const set = activeFilters[facet];
+    if (set.size > 0 && !set.has(c[facet])) return false;
+  }
+
+  if (searchTerm && !['__need_final__', '__has_overview__'].includes(searchTerm)) {
+    const term = searchTerm.toLowerCase();
+    const searchable = [
+      c.id, c.customer, c.area, c.section, c.type, c.rawType, c.classification,
+      c.cause, c.prevention, c.full_first, c.full_second, c.full_third, c.overview, c.overview_th, c.overview_en, c.full_final, c.note
+    ].join(' ').toLowerCase();
+    if (!searchable.includes(term)) return false;
+  }
+
+  if (searchTerm === '__has_overview__' && !hasOverview(c)) return false;
+  if (searchTerm === '__need_final__' && c.full_final) return false;
+  return true;
+}
+
+
+function hasFocusedCaseView() {
+  return selectedTypeFilter !== 'ALL' || showOnlyBookmarks || Boolean(searchTerm) ||
+    activeFilters.severity.size > 0 || activeFilters.section.size > 0 || activeFilters.classification.size > 0;
+}
+
+function getSeverityPresentation(severity) {
+  if (severity === 'High') {
+    return { border: 'border-l-rose-500', badge: 'bg-rose-50 text-rose-700 border-rose-200', deck: 'deck-severity-high' };
+  }
+  if (severity === 'Medium') {
+    return { border: 'border-l-amber-500', badge: 'bg-amber-50 text-amber-700 border-amber-200', deck: 'deck-severity-medium' };
+  }
+  return { border: 'border-l-slate-400', badge: 'bg-slate-100 text-slate-700 border-slate-200', deck: 'deck-severity-low' };
+}
+
+function renderCaseViewHeader(focusMode, totalFiltered) {
+  const el = document.getElementById('caseViewHeader');
+  if (!el) return;
+
+  if (focusMode) {
+    el.innerHTML = `
+      <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+        <div class="flex items-start gap-3">
+          <div class="w-10 h-10 rounded-2xl bg-rose-50 text-rose-600 border border-rose-100 flex items-center justify-center">⌖</div>
+          <div>
+            <div class="flex items-center gap-2 flex-wrap">
+              <span class="view-mode-pill bg-rose-50 text-rose-700 border border-rose-100">Focus Mode</span>
+              <span class="text-xs text-slate-500">${totalFiltered} matching case${totalFiltered === 1 ? '' : 's'}</span>
+            </div>
+            <div class="mt-1 text-sm font-semibold text-slate-800">กำลังแสดงเฉพาะเคสที่ตรงกับสิ่งที่เลือก</div>
+            <div class="text-xs text-slate-500 mt-0.5">อ่าน Root Cause / Countermeasure ได้ชัดขึ้น และคลิกการ์ดเพื่อเปิดรายละเอียดทุก Report</div>
+          </div>
+        </div>
+        <button onclick="resetToAllCases(); focusCasesSection();" class="px-3.5 py-2 rounded-xl bg-slate-800 hover:bg-slate-900 text-white text-xs font-semibold">กลับ Overview Deck</button>
+      </div>`;
+  } else {
+    el.innerHTML = `
+      <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+        <div class="flex items-start gap-3">
+          <div class="w-10 h-10 rounded-2xl bg-slate-100 text-slate-700 border border-slate-200 flex items-center justify-center">▱</div>
+          <div>
+            <div class="flex items-center gap-2 flex-wrap">
+              <span class="view-mode-pill bg-slate-100 text-slate-700 border border-slate-200">Overview Deck</span>
+              <span class="text-xs text-slate-500">${totalFiltered} case${totalFiltered === 1 ? '' : 's'} in view</span>
+            </div>
+            <div class="mt-1 text-sm font-semibold text-slate-800">ภาพรวมแบบการ์ดซ้อน — เห็น Case ID และลูกค้าได้โดยไม่ต้องไล่อ่านกล่องยาว</div>
+            <div class="text-xs text-slate-500 mt-0.5">Hover เพื่อยกการ์ดขึ้น · คลิกการ์ดเพื่อเปิดเคสนั้น · ใช้ Filter/Search แล้วระบบจะเปลี่ยนเป็น Focus Mode อัตโนมัติ</div>
+          </div>
+        </div>
+        <div class="text-[11px] text-slate-500 bg-slate-50 border border-slate-200 rounded-xl px-3 py-2">Interactive · Auto Focus</div>
+      </div>`;
+  }
+}
+
+function renderDeckOverview(cases) {
+  const categoryOrder = ['Accident', 'Mistake', 'Wrong Input Data', 'Delay', 'Broken'];
+  const grouped = {};
+  cases.forEach(c => {
+    const key = c.type || 'Other';
+    if (!grouped[key]) grouped[key] = [];
+    grouped[key].push(c);
+  });
+
+  const keys = [
+    ...categoryOrder.filter(k => grouped[k]?.length),
+    ...Object.keys(grouped).filter(k => !categoryOrder.includes(k))
+  ];
+
+  return `<div class="deck-overview">${keys.map((key, groupIndex) => {
+    const groupCases = grouped[key];
+    const cat = CATEGORIES.find(x => x.id === key);
+    const label = cat ? cat.nameTh : key;
+    const icon = getTypeIcon(key);
+
+    return `
+      <section class="case-stack-group" aria-label="${key} cases">
+        <div class="flex items-center justify-between gap-3 mb-2.5">
+          <div>
+            <div class="text-xs font-mono font-bold uppercase tracking-wider text-slate-500">${key}</div>
+            <div class="text-sm font-bold text-slate-900 mt-0.5">${icon} ${label}</div>
+          </div>
+          <button onclick="focusFacet('type', '${escapeJsValue(key)}', event)" class="px-2.5 py-1 rounded-full bg-white border border-slate-200 text-[11px] font-mono font-bold text-slate-600 hover:text-brand-700 hover:border-brand-200 transition-colors">${groupCases.length} เคส</button>
+        </div>
+        <div class="case-stack-stage">
+          ${groupCases.map((c, index) => {
+            const sev = getSeverityPresentation(c.severity);
+            const delay = `${(groupIndex * 90 + index * 65) % 900}ms`;
+            return `
+              <article tabindex="0" role="button" onclick="openModal('${escapeJsValue(c.id)}')" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();openModal('${escapeJsValue(c.id)}')}" class="deck-case-card ${sev.deck}" style="z-index:${index + 1}; --deck-delay:${delay};" title="เปิดเคส ${c.id}">
+                <div class="flex items-start justify-between gap-2">
+                  <div class="min-w-0">
+                    <div class="flex items-center gap-2 min-w-0">
+                      <span class="text-[11px] font-mono font-bold text-brand-700 shrink-0">${c.id}</span>
+                      <span class="text-[10px] text-slate-400 truncate">${c.date || ''}</span>
                     </div>
-                    <div class="px-5 py-3 bg-slate-50 border-t border-slate-100 flex justify-between items-center">
-                        <span class="text-xs font-mono text-slate-500">${item['Report No.']}</span>
-                        <span class="text-xs font-medium text-brand-600 group-hover:translate-x-1 transition-transform flex items-center gap-1">
-                            View Details 
-                            <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/></svg>
-                        </span>
-                    </div>
+                    <div class="text-sm font-bold text-slate-900 truncate mt-1">${c.customer}</div>
+                    <div class="text-[11px] text-slate-500 truncate mt-0.5">${c.section} · ${c.classification}</div>
+                    ${hasOverview(c) ? `<div class="text-[9px] font-mono font-bold text-slate-400 mt-1">TH / EN OVERVIEW</div>` : ''}
+                  </div>
+                  <span class="px-2 py-0.5 text-[9px] font-mono font-bold uppercase rounded-full border ${sev.badge} shrink-0">${c.severity}</span>
                 </div>
-                `;
-            }).join('');
+              </article>`;
+          }).join('')}
+        </div>
+      </section>`;
+  }).join('')}</div>`;
+}
+
+function renderFocusedCaseCard(c) {
+  const isBookmarked = bookmarkedIds.has(c.id);
+  const sev = getSeverityPresentation(c.severity);
+  const sectionSafe = escapeJsValue(c.section);
+  const typeSafe = escapeJsValue(c.type);
+  const classSafe = escapeJsValue(c.classification);
+  const reportBadges = [
+    c.full_first ? '<span class="px-2 py-1 rounded-full bg-slate-100 border border-slate-200 text-slate-600">1st</span>' : '',
+    c.full_second ? '<span class="px-2 py-1 rounded-full bg-brand-50 border border-brand-100 text-brand-700">2nd</span>' : '',
+    c.full_third ? '<span class="px-2 py-1 rounded-full bg-slate-100 border border-slate-200 text-slate-600">3rd</span>' : '',
+    hasOverview(c) ? '<span class="px-2 py-1 rounded-full bg-slate-100 border border-slate-200 text-slate-700">Overview TH + EN</span>' : '',
+    c.full_final ? '<span class="px-2 py-1 rounded-full bg-emerald-50 border border-emerald-100 text-emerald-700">Final</span>' : '<span class="px-2 py-1 rounded-full bg-rose-50 border border-rose-100 text-rose-700">Pending Final</span>'
+  ].join('');
+
+  return `
+    <div onclick="openModal('${escapeJsValue(c.id)}')" class="bg-white rounded-3xl border border-slate-200/90 border-l-4 ${sev.border} shadow-sm minimal-card cursor-pointer flex flex-col justify-between overflow-hidden group">
+      <div class="p-4 sm:p-5 space-y-3 flex-1">
+        <div class="flex items-center justify-between gap-2">
+          <span class="text-xs font-mono font-bold text-slate-500 tracking-tight">${c.id} · ${c.date || 'No date'}</span>
+          <div class="flex items-center gap-1.5">
+            <span class="px-2 py-0.5 text-[10px] font-mono font-bold uppercase rounded-full border ${sev.badge}">${c.severity}</span>
+            <button onclick="toggleBookmark('${escapeJsValue(c.id)}', event)" class="p-1.5 hover:bg-slate-100 rounded-xl transition-colors" title="บันทึกรายการ">
+              <svg class="w-4 h-4 ${isBookmarked ? 'text-brand-600 fill-brand-600' : 'text-slate-300 hover:text-slate-400'}" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11.049 2.927c.3-.921 1.603-.921 1.902 0l1.519 4.674a1 1 0 00.95.69h4.915c.969 0 1.371 1.24.588 1.81l-3.976 2.888a1 1 0 00-.363 1.118l1.518 4.674c.3.922-.755 1.688-1.538 1.118l-3.976-2.888a1 1 0 00-1.176 0l-3.976 2.888c-.783.57-1.838-.197-1.538-1.118l1.518-4.674a1 1 0 00-.363-1.118l-3.976-2.888c-.784-.57-.38-1.81.588-1.81h4.914a1 1 0 00.951-.69l1.519-4.674z"/></svg>
+            </button>
+          </div>
+        </div>
+
+        <div>
+          <h3 class="text-lg font-bold text-slate-900 group-hover:text-brand-600 transition-colors clamp-2 leading-snug">${c.customer}</h3>
+          <p class="text-xs text-slate-500 mt-1">${c.area || 'Area not specified'}</p>
+        </div>
+
+        <div class="flex flex-wrap gap-2 text-xs">
+          <button onclick="focusFacet('section', '${sectionSafe}', event)" class="insight-pill px-2.5 py-1 rounded-full text-slate-700 hover:border-brand-200">${c.section}</button>
+          <button onclick="focusFacet('type', '${typeSafe}', event)" class="insight-pill px-2.5 py-1 rounded-full text-slate-700 hover:border-brand-200">${getTypeIcon(c.type)} ${c.type}</button>
+          <button onclick="focusFacet('classification', '${classSafe}', event)" class="insight-pill px-2.5 py-1 rounded-full text-slate-700 hover:border-brand-200">${c.classification}</button>
+        </div>
+
+        <div class="grid gap-2 pt-1">
+          ${hasOverview(c) ? `<div class="space-y-2"><div class="text-[10px] font-mono font-bold uppercase tracking-wider text-slate-600">Overview · TH / EN</div>${renderBilingualOverview(c, true)}</div>` : ''}
+          <div class="rounded-2xl border border-rose-100 bg-rose-50/60 p-3"><div class="text-[10px] font-mono font-bold uppercase tracking-wider text-rose-700 mb-1">Root Cause</div><p class="text-sm text-slate-700 line-clamp-2 leading-relaxed">${c.cause}</p></div>
+          <div class="rounded-2xl border border-emerald-100 bg-emerald-50/60 p-3"><div class="text-[10px] font-mono font-bold uppercase tracking-wider text-emerald-700 mb-1">Countermeasure</div><p class="text-sm text-slate-700 line-clamp-2 leading-relaxed">${c.prevention}</p></div>
+        </div>
+      </div>
+      <div class="px-4 sm:px-5 py-3 bg-slate-50 border-t border-slate-100 space-y-2">
+        <div class="flex flex-wrap gap-1.5 text-[10px] font-mono font-semibold">${reportBadges}</div>
+        <div class="flex items-center justify-between text-xs font-medium text-slate-500">
+          <span class="truncate max-w-[190px]">${c.note || 'Open case for learning'}</span>
+          <span class="text-brand-600 font-bold group-hover:translate-x-1 transition-transform flex items-center gap-0.5">ศึกษาเคส <span>→</span></span>
+        </div>
+      </div>
+    </div>`;
+}
+
+function renderGrid() {
+  let filtered = ALL_CASES.filter(matchesFilters);
+  filtered = sortCases(filtered);
+  const totalFiltered = filtered.length;
+  const focusMode = hasFocusedCaseView();
+
+  const grid = document.getElementById('cardGrid');
+  renderHeroStats(filtered);
+  renderActiveContext();
+  renderDatasetStatus();
+  renderCaseViewHeader(focusMode, totalFiltered);
+
+  const modeText = csvHasBeenImported
+    ? `${focusMode ? 'Focus' : 'Overview'} <strong>${totalFiltered}</strong> เคสจาก CSV`
+    : `Preview <strong>${totalFiltered}</strong> เคส · กรุณา Upload CSV ก่อนใช้งานข้อมูลจริง`;
+  document.getElementById('resultCount').innerHTML = `${modeText} <span class="text-slate-400">· sorted by <strong class="text-slate-600">${currentSort}</strong></span>`;
+
+  if (filtered.length === 0) {
+    grid.className = 'w-full';
+    grid.innerHTML = `
+      <div class="py-12 text-center bg-white rounded-3xl border border-dashed border-slate-300 space-y-3">
+        <div class="text-4xl">🔍</div>
+        <div class="text-slate-700 font-semibold">ไม่พบบทเรียนที่ตรงกับตัวกรองที่ระบุ</div>
+        <div class="text-xs text-slate-500">ลองเปลี่ยนคำค้นหา ตัวกรอง หรือกดปุ่มกลับ Overview Deck</div>
+        <button onclick="resetToAllCases()" class="px-4 py-2 bg-brand-600 text-white text-xs font-semibold rounded-xl hover:bg-brand-700 transition-colors shadow-2xs">กลับ Overview Deck</button>
+      </div>`;
+    return;
+  }
+
+  if (focusMode) {
+    grid.className = 'focused-case-grid w-full';
+    grid.innerHTML = filtered.map(renderFocusedCaseCard).join('');
+  } else {
+    grid.className = 'w-full';
+    grid.innerHTML = renderDeckOverview(filtered);
+  }
+}
+
+
+function openQuizModal() {
+  currentQuizIndex = 0;
+  quizScore = 0;
+  userAnswers = [];
+  renderQuestion();
+  document.getElementById('quizOverlay').classList.remove('hidden');
+  document.body.classList.add('overflow-hidden');
+}
+
+function closeQuizModal() {
+  document.getElementById('quizOverlay').classList.add('hidden');
+  document.body.classList.remove('overflow-hidden');
+}
+
+function renderQuestion() {
+  const body = document.getElementById('quizBody');
+  const footerBtn = document.getElementById('btnNextQuestion');
+  const progressText = document.getElementById('quizProgressText');
+
+  if (currentQuizIndex >= QUIZ_QUESTIONS.length) {
+    renderQuizResult();
+    return;
+  }
+
+  footerBtn.classList.add('hidden');
+  progressText.textContent = `คำถาม ${currentQuizIndex + 1} / ${QUIZ_QUESTIONS.length}`;
+
+  const q = QUIZ_QUESTIONS[currentQuizIndex];
+
+  body.innerHTML = `
+    <div class="space-y-4">
+      <div class="w-full bg-slate-100 h-2 rounded-full overflow-hidden">
+        <div class="bg-brand-600 h-2 transition-all duration-300" style="width: ${((currentQuizIndex + 1) / QUIZ_QUESTIONS.length) * 100}%"></div>
+      </div>
+
+      <h3 class="text-base sm:text-lg font-bold text-slate-900 leading-snug">
+        ${currentQuizIndex + 1}. ${q.question}
+      </h3>
+
+      <div class="space-y-2.5 pt-2">
+        ${q.options.map((opt, idx) => `
+          <button onclick="selectQuizAnswer(${idx})" id="opt-${idx}" class="w-full text-left p-3.5 rounded-xl border border-slate-200 hover:border-brand-300 hover:bg-brand-50/50 transition-all text-xs sm:text-sm font-medium text-slate-800 flex items-start gap-3">
+            <span class="w-6 h-6 rounded-full bg-slate-100 text-slate-600 font-mono text-xs flex items-center justify-center shrink-0 font-bold border border-slate-200">${String.fromCharCode(65 + idx)}</span>
+            <span class="pt-0.5">${opt}</span>
+          </button>
+        `).join('')}
+      </div>
+
+      <div id="quizExplanation" class="hidden p-4 rounded-xl text-xs sm:text-sm space-y-1 animate-fadeIn"></div>
+    </div>
+  `;
+}
+
+function selectQuizAnswer(optIdx) {
+  const q = QUIZ_QUESTIONS[currentQuizIndex];
+  const expEl = document.getElementById('quizExplanation');
+  const footerBtn = document.getElementById('btnNextQuestion');
+
+  for (let i = 0; i < q.options.length; i++) {
+    const btn = document.getElementById(`opt-${i}`);
+    btn.disabled = true;
+    if (i === q.correctIndex) {
+      btn.className = "w-full text-left p-3.5 rounded-xl border border-emerald-300 bg-emerald-50 text-emerald-900 font-medium text-xs sm:text-sm flex items-start gap-3 shadow-2xs";
+    } else if (i === optIdx && optIdx !== q.correctIndex) {
+      btn.className = "w-full text-left p-3.5 rounded-xl border border-brand-300 bg-brand-50 text-brand-900 font-medium text-xs sm:text-sm flex items-start gap-3";
+    } else {
+      btn.className = "w-full text-left p-3.5 rounded-xl border border-slate-200 opacity-50 text-xs sm:text-sm flex items-start gap-3";
+    }
+  }
+
+  const isCorrect = optIdx === q.correctIndex;
+  if (isCorrect) quizScore++;
+  userAnswers.push({ questionIndex: currentQuizIndex, selected: optIdx, isCorrect: isCorrect });
+
+  expEl.classList.remove('hidden');
+  if (isCorrect) {
+    expEl.className = "p-4 rounded-xl text-xs sm:text-sm bg-emerald-50 border border-emerald-200 text-emerald-900 space-y-1 animate-fadeIn";
+    expEl.innerHTML = `<div class="font-bold flex items-center gap-1 text-emerald-700"><span>✅</span> <span>คำตอบถูกต้อง!</span></div><p class="leading-relaxed">${q.explanation}</p>`;
+  } else {
+    expEl.className = "p-4 rounded-xl text-xs sm:text-sm bg-brand-50 border border-brand-200 text-brand-900 space-y-1 animate-fadeIn";
+    expEl.innerHTML = `<div class="font-bold flex items-center gap-1 text-brand-700"><span>❌</span> <span>ยังไม่ถูกต้อง</span></div><p class="leading-relaxed">${q.explanation}</p>`;
+  }
+
+  footerBtn.classList.remove('hidden');
+}
+
+function nextQuestion() {
+  currentQuizIndex++;
+  renderQuestion();
+}
+
+function getQuizRecommendation(pct) {
+  if (pct >= 90) return { title: 'Excellent — พร้อมเป็น Knowledge Champion', text: 'คุณเข้าใจ control สำคัญได้ดีมาก แนะนำให้นำบทเรียนไปแชร์ใน Morning Talk และช่วยทบทวน checklist กับทีม' };
+  if (pct >= 70) return { title: 'Good — ผ่านเกณฑ์การเรียนรู้', text: 'พื้นฐานดีแล้ว ให้ทบทวนข้อที่ตอบผิดและเชื่อมโยงกับ SOP/Work Instruction ของแผนกก่อนนำไปใช้จริง' };
+  return { title: 'Review Required — ควรทบทวนก่อนใช้งานจริง', text: 'กรุณาทบทวนเคสที่เกี่ยวข้อง โดยเฉพาะจุดควบคุมก่อนส่งข้อมูล/ปล่อยงาน และทำ Quiz ซ้ำเพื่อยืนยันความเข้าใจ' };
+}
+
+function renderQuizResult() {
+  const body = document.getElementById('quizBody');
+  const footerBtn = document.getElementById('btnNextQuestion');
+  const progressText = document.getElementById('quizProgressText');
+  footerBtn.classList.add('hidden');
+  progressText.textContent = `เสร็จสิ้นแบบทดสอบ`;
+
+  const total = QUIZ_QUESTIONS.length;
+  const pct = Math.round((quizScore / total) * 100);
+  const recommendation = getQuizRecommendation(pct);
+  const wrongCount = total - quizScore;
+
+  body.innerHTML = `
+    <div class="space-y-5 animate-fadeIn">
+      <div class="rounded-2xl bg-gradient-to-br from-brand-600 via-brand-700 to-slate-900 text-white p-5 sm:p-6 shadow-lg">
+        <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+          <div>
+            <div class="text-xs font-mono uppercase tracking-[0.18em] text-white/70">BPI Learning Result</div>
+            <h3 class="text-xl sm:text-2xl font-bold mt-1">ผลการทดสอบความเข้าใจ</h3>
+            <p class="text-xs text-white/75 mt-1">Safety · Quality · Compliance · Logistics Operations</p>
+          </div>
+          <div class="text-center sm:text-right">
+            <div class="text-4xl font-mono font-bold">${pct}%</div>
+            <div class="text-xs text-white/75">${quizScore} / ${total} ข้อ</div>
+          </div>
+        </div>
+        <div class="mt-4 w-full h-2 bg-white/15 rounded-full overflow-hidden"><div class="h-full bg-white rounded-full" style="width:${pct}%"></div></div>
+      </div>
+
+      <div class="grid grid-cols-3 gap-2">
+        <div class="rounded-xl border border-emerald-200 bg-emerald-50 p-3 text-center"><div class="text-lg font-bold text-emerald-700">${quizScore}</div><div class="text-[10px] text-emerald-800">ตอบถูก</div></div>
+        <div class="rounded-xl border border-amber-200 bg-amber-50 p-3 text-center"><div class="text-lg font-bold text-amber-700">${wrongCount}</div><div class="text-[10px] text-amber-800">ควรทบทวน</div></div>
+        <div class="rounded-xl border border-blue-200 bg-blue-50 p-3 text-center"><div class="text-lg font-bold text-blue-700">${total}</div><div class="text-[10px] text-blue-800">คำถามทั้งหมด</div></div>
+      </div>
+
+      <div class="bg-slate-50 p-4 rounded-xl border border-slate-200">
+        <div class="font-bold text-slate-900 text-sm">💡 ${recommendation.title}</div>
+        <p class="text-xs text-slate-600 mt-1 leading-relaxed">${recommendation.text}</p>
+      </div>
+
+      <div>
+        <div class="flex items-center justify-between mb-2"><h4 class="text-sm font-bold text-slate-900">ทบทวนคำตอบของคุณ</h4><span class="text-[10px] font-mono text-slate-400">Question Review</span></div>
+        <div class="space-y-2 max-h-72 overflow-y-auto pr-1">
+          ${userAnswers.map((a, i) => {
+            const q = QUIZ_QUESTIONS[a.questionIndex];
+            return `<div class="p-3 rounded-xl border ${a.isCorrect ? 'border-emerald-200 bg-emerald-50/50' : 'border-brand-200 bg-brand-50/40'}">
+              <div class="flex gap-2"><span>${a.isCorrect ? '✅' : '❌'}</span><div class="min-w-0"><div class="text-xs font-bold text-slate-800">${i+1}. ${q.question}</div><div class="text-[11px] text-slate-600 mt-1">คำตอบของคุณ: <strong>${q.options[a.selected]}</strong></div>${!a.isCorrect ? `<div class="text-[11px] text-emerald-700 mt-0.5">คำตอบที่ถูก: <strong>${q.options[q.correctIndex]}</strong></div>` : ''}<div class="text-[11px] text-slate-500 mt-1 leading-relaxed">${q.explanation}</div></div></div>
+            </div>`;
+          }).join('')}
+        </div>
+      </div>
+
+      <div class="p-4 rounded-2xl border border-slate-200 bg-white shadow-2xs space-y-3">
+        <div><div class="text-sm font-bold text-slate-900">📧 ส่งผลคะแนนเป็น PDF</div><div class="text-[11px] text-slate-500">PDF จะรวมคะแนน คำถาม คำตอบของคุณ คำตอบที่ถูก และคำอธิบาย</div></div>
+        <div class="flex flex-col sm:flex-row gap-2">
+          <input id="quizEmail" type="email" placeholder="employee@company.com" class="flex-1 px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs focus:outline-none focus:ring-2 focus:ring-brand-500">
+          <button onclick="shareQuizPdf()" class="px-4 py-2.5 bg-slate-900 hover:bg-slate-800 text-white font-bold rounded-xl text-xs">ส่ง / Share PDF</button>
+          <button onclick="downloadQuizPdf()" class="px-4 py-2.5 bg-white border border-slate-300 hover:bg-slate-50 text-slate-700 font-bold rounded-xl text-xs">ดาวน์โหลด PDF</button>
+        </div>
+        <div id="quizEmailStatus" class="text-[11px] text-slate-500"></div>
+      </div>
+
+      <div class="flex flex-wrap justify-center gap-2 pt-1">
+        <button onclick="openQuizModal()" class="px-4 py-2 bg-brand-600 hover:bg-brand-700 text-white font-bold rounded-xl text-xs">ทำแบบทดสอบอีกครั้ง</button>
+        <button onclick="closeQuizModal()" class="px-4 py-2 bg-slate-200 hover:bg-slate-300 text-slate-800 font-medium rounded-xl text-xs">กลับสู่คลังบทเรียน</button>
+      </div>
+    </div>`;
+}
+
+function buildQuizPdfHtml() {
+  const total = QUIZ_QUESTIONS.length;
+  const pct = Math.round((quizScore / total) * 100);
+  const recommendation = getQuizRecommendation(pct);
+  const rows = userAnswers.map((a, i) => {
+    const q = QUIZ_QUESTIONS[a.questionIndex];
+    return `<div style="border:1px solid #e2e8f0;border-radius:12px;padding:12px;margin:0 0 10px 0;page-break-inside:avoid;">
+      <div style="font-weight:700;font-size:13px;">${i+1}. ${q.question}</div>
+      <div style="font-size:11px;margin-top:6px;">ผล: ${a.isCorrect ? 'ถูกต้อง' : 'ควรทบทวน'}</div>
+      <div style="font-size:11px;margin-top:3px;">คำตอบของผู้ทำ: ${q.options[a.selected]}</div>
+      <div style="font-size:11px;margin-top:3px;color:#047857;">คำตอบที่ถูก: ${q.options[q.correctIndex]}</div>
+      <div style="font-size:10px;color:#475569;margin-top:5px;line-height:1.5;">${q.explanation}</div>
+    </div>`;
+  }).join('');
+  return `<div style="font-family:Sarabun,Arial,sans-serif;background:#fff;color:#0f172a;width:794px;padding:34px;box-sizing:border-box;">
+    <div style="border-bottom:4px solid #dc2626;padding-bottom:14px;margin-bottom:18px;"><div style="font-size:12px;color:#64748b;letter-spacing:1px;">BPI KNOWLEDGE & SAFETY HUB</div><div style="font-size:24px;font-weight:700;margin-top:4px;">Quiz Result & Answer Review</div><div style="font-size:12px;color:#64748b;">Safety · Quality · Compliance · Logistics Operations</div></div>
+    <div style="display:flex;gap:12px;margin-bottom:16px;"><div style="flex:1;background:#fef2f2;border:1px solid #fecaca;border-radius:12px;padding:14px;"><div style="font-size:11px;color:#991b1b;">SCORE</div><div style="font-size:28px;font-weight:700;color:#dc2626;">${quizScore}/${total} (${pct}%)</div></div><div style="flex:2;background:#f8fafc;border:1px solid #e2e8f0;border-radius:12px;padding:14px;"><div style="font-size:12px;font-weight:700;">${recommendation.title}</div><div style="font-size:11px;color:#475569;margin-top:5px;line-height:1.5;">${recommendation.text}</div></div></div>
+    <div style="font-size:15px;font-weight:700;margin:16px 0 10px;">Question & Answer Review</div>${rows}
+    <div style="font-size:9px;color:#94a3b8;margin-top:16px;border-top:1px solid #e2e8f0;padding-top:8px;">Generated from BPI Case Library learning quiz.</div>
+  </div>`;
+}
+
+async function createQuizPdfBlob() {
+  const holder = document.createElement('div');
+  holder.style.position = 'fixed'; holder.style.left = '-10000px'; holder.style.top = '0'; holder.style.zIndex = '-1';
+  holder.innerHTML = buildQuizPdfHtml(); document.body.appendChild(holder);
+  const canvas = await html2canvas(holder.firstElementChild, { scale: 1.6, backgroundColor: '#ffffff', useCORS: true });
+  document.body.removeChild(holder);
+  const { jsPDF } = window.jspdf;
+  const pdf = new jsPDF('p','mm','a4');
+  const pageW = 210, pageH = 297, margin = 8, usableW = pageW - margin*2, usableH = pageH - margin*2;
+  const imgW = usableW; const imgH = canvas.height * imgW / canvas.width;
+  const pagePxHeight = Math.floor(canvas.width * usableH / usableW);
+  let yPx = 0, page = 0;
+  while (yPx < canvas.height) {
+    const sliceH = Math.min(pagePxHeight, canvas.height - yPx);
+    const slice = document.createElement('canvas'); slice.width = canvas.width; slice.height = sliceH;
+    slice.getContext('2d').drawImage(canvas, 0, yPx, canvas.width, sliceH, 0, 0, canvas.width, sliceH);
+    const data = slice.toDataURL('image/jpeg', 0.94);
+    const hMm = sliceH * imgW / canvas.width;
+    if (page > 0) pdf.addPage();
+    pdf.addImage(data, 'JPEG', margin, margin, imgW, hMm);
+    yPx += sliceH; page++;
+  }
+  return pdf.output('blob');
+}
+
+async function downloadQuizPdf() {
+  const status = document.getElementById('quizEmailStatus');
+  try {
+    status.textContent = 'กำลังสร้าง PDF...';
+    const blob = await createQuizPdfBlob();
+    const url = URL.createObjectURL(blob); const a = document.createElement('a');
+    a.href = url; a.download = `BPI_Quiz_Result_${new Date().toISOString().slice(0,10)}.pdf`; a.click();
+    setTimeout(()=>URL.revokeObjectURL(url),1500); status.textContent = 'สร้าง PDF เรียบร้อยแล้ว';
+  } catch(e) { console.error(e); status.textContent = 'ไม่สามารถสร้าง PDF ได้ กรุณาลองอีกครั้ง'; }
+}
+
+async function shareQuizPdf() {
+  const email = (document.getElementById('quizEmail')?.value || '').trim();
+  const status = document.getElementById('quizEmailStatus');
+  if (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) { status.textContent = 'กรุณากรอกอีเมลให้ถูกต้องก่อนส่ง'; return; }
+  try {
+    status.textContent = 'กำลังจัดทำ PDF สำหรับส่ง...';
+    const blob = await createQuizPdfBlob();
+    const file = new File([blob], `BPI_Quiz_Result_${new Date().toISOString().slice(0,10)}.pdf`, {type:'application/pdf'});
+    const pct = Math.round((quizScore / QUIZ_QUESTIONS.length) * 100);
+    if (navigator.canShare && navigator.canShare({files:[file]})) {
+      await navigator.share({ title:'BPI Quiz Result', text:`BPI Quiz Score: ${quizScore}/${QUIZ_QUESTIONS.length} (${pct}%). Recipient: ${email}`, files:[file] });
+      status.textContent = `เปิดเมนู Share พร้อมไฟล์ PDF แล้ว — เลือกแอปอีเมลและส่งถึง ${email}`;
+    } else {
+      const url = URL.createObjectURL(blob); const a = document.createElement('a'); a.href=url; a.download=file.name; a.click();
+      setTimeout(()=>URL.revokeObjectURL(url),1500);
+      const subject = encodeURIComponent(`BPI Quiz Result - ${pct}%`);
+      const body = encodeURIComponent(`BPI Quiz Result\nScore: ${quizScore}/${QUIZ_QUESTIONS.length} (${pct}%)\n\nPDF result has been downloaded. Please attach the PDF file to this email.`);
+      window.location.href = `mailto:${encodeURIComponent(email)}?subject=${subject}&body=${body}`;
+      status.textContent = 'Browser นี้ไม่รองรับการแนบไฟล์ผ่าน Share: ระบบดาวน์โหลด PDF และเปิดอีเมลถึงผู้รับให้แล้ว กรุณาแนบไฟล์ PDF ที่ดาวน์โหลด';
+    }
+  } catch(e) { console.error(e); status.textContent = 'ยกเลิกหรือไม่สามารถเปิดการแชร์ได้'; }
+}
+
+function openModal(caseId) {
+  currentModalCaseId = caseId;
+  const c = ALL_CASES.find(x => x.id === caseId);
+  if (!c) return;
+
+  renderModalHeader(c);
+  renderModalBody(c);
+  
+  document.getElementById('modalOverlay').classList.remove('hidden');
+  document.body.classList.add('overflow-hidden');
+}
+
+function closeModal() {
+  document.getElementById('modalOverlay').classList.add('hidden');
+  document.body.classList.remove('overflow-hidden');
+  currentModalCaseId = null;
+}
+
+function renderModalHeader(c) {
+  let sevBadge = 'bg-emerald-100 text-emerald-800 border-emerald-300';
+  if (c.severity === 'High') sevBadge = 'bg-rose-100 text-rose-800 border-rose-300';
+  if (c.severity === 'Medium') sevBadge = 'bg-amber-100 text-amber-800 border-amber-300';
+
+  const sectionSafe = escapeJsValue(c.section);
+  const typeSafe = escapeJsValue(c.type);
+  const classSafe = escapeJsValue(c.classification);
+
+  document.getElementById('modalHeader').innerHTML = `
+    <div class="w-full">
+      <div class="flex flex-col lg:flex-row lg:items-start lg:justify-between gap-4">
+        <div>
+          <div class="flex items-center gap-2 mb-1 flex-wrap">
+            <span class="text-xs font-mono text-white/90 font-bold">${c.id}</span>
+            <span class="text-white/70 text-xs">· ${c.date}</span>
+            <span class="px-2 py-0.5 text-[10px] font-mono font-bold uppercase rounded border ${sevBadge}">${c.severity}</span>
+          </div>
+          <h2 class="text-lg sm:text-xl font-bold text-white">${c.customer}</h2>
+          <div class="text-xs text-white/80 mt-2 flex flex-wrap gap-2">
+            <button onclick="focusFacet('section', '${sectionSafe}', event); closeModal();" class="px-2.5 py-1 rounded-full bg-white/15 hover:bg-white/25 border border-white/15">Section: ${c.section}</button>
+            <button onclick="focusFacet('type', '${typeSafe}', event); closeModal();" class="px-2.5 py-1 rounded-full bg-white/15 hover:bg-white/25 border border-white/15">Type: ${c.type}</button>
+            <button onclick="focusFacet('classification', '${classSafe}', event); closeModal();" class="px-2.5 py-1 rounded-full bg-white/15 hover:bg-white/25 border border-white/15">Class: ${c.classification}</button>
+            <span class="px-2.5 py-1 rounded-full bg-white/10 border border-white/10">Area: ${c.area || 'N/A'}</span>
+          </div>
+        </div>
+        <button onclick="closeModal()" class="text-white/80 hover:text-white text-2xl font-bold leading-none">&times;</button>
+      </div>
+    </div>
+  `;
+}
+
+
+function switchModalTab(tabName) {
+  activeModalTab = tabName;
+  ['Summary', 'First', 'Second', 'Third', 'Overview', 'Final'].forEach(t => {
+    const btn = document.getElementById(`tabBtn${t}`);
+    if (t.toLowerCase() === tabName) {
+      btn.className = "py-1.5 px-3.5 rounded-xl bg-brand-600 text-white font-bold flex items-center gap-1.5 shadow-2xs transition-all";
+    } else {
+      btn.className = "py-1.5 px-3.5 rounded-xl hover:bg-slate-200 text-slate-700 font-medium transition-colors";
+    }
+  });
+  if (currentModalCaseId) {
+    const c = ALL_CASES.find(x => x.id === currentModalCaseId);
+    if (c) renderModalBody(c);
+  }
+}
+
+function renderModalBody(c) {
+  const body = document.getElementById('modalBody');
+
+  if (activeModalTab === 'summary') {
+    body.innerHTML = `
+      ${hasOverview(c) ? `<div class="space-y-2"><div class="text-xs sm:text-sm font-bold text-slate-700 flex items-center gap-2 border-b border-slate-200 pb-1.5"><span>🧭</span><span>Overview / ภาพรวมเคส</span></div>${renderBilingualOverview(c)}</div>` : ''}
+      <div class="space-y-2">
+        <div class="text-xs sm:text-sm font-bold text-brand-700 flex items-center gap-2 border-b border-brand-200 pb-1.5">
+          <span>⚠️</span> <span>สาเหตุหลักที่เกิดเหตุการณ์ (Root Cause Analysis)</span>
+        </div>
+        <p class="text-xs sm:text-sm text-slate-800 leading-relaxed bg-red-50/50 p-4 rounded-xl border border-red-100 whitespace-pre-line font-medium">${c.cause}</p>
+      </div>
+
+      <div class="space-y-2">
+        <div class="text-xs sm:text-sm font-bold text-emerald-700 flex items-center gap-2 border-b border-emerald-200 pb-1.5">
+          <span>✅</span> <span>มาตรการป้องกันและแก้ไข (Countermeasure &amp; Prevention Plan)</span>
+        </div>
+        <p class="text-xs sm:text-sm text-slate-800 leading-relaxed bg-emerald-50/50 p-4 rounded-xl border border-emerald-100 whitespace-pre-line font-medium">${c.prevention}</p>
+      </div>
+
+      <div class="bg-amber-50 p-4 rounded-xl border border-amber-200 space-y-1.5">
+        <div class="text-xs font-mono font-bold text-amber-800 uppercase tracking-wider">💡 Key Safety Takeaway for Team</div>
+        <div class="text-xs text-amber-900 leading-relaxed">
+          นำบทเรียนจากเคสนี้ไปใช้ทบทวนในกิจกรรม Safety Morning Talk / Toolbox Meeting ของแผนกเพื่อป้องกันการเกิดซ้ำ
+        </div>
+      </div>
+    `;
+  } else if (activeModalTab === 'first') {
+    body.innerHTML = `
+      <div class="space-y-3">
+        <div class="text-xs font-mono font-bold text-slate-500 uppercase">First Report Original Log</div>
+        <div class="bg-slate-50 p-4 rounded-xl border border-slate-200 font-mono text-xs leading-relaxed text-slate-800 whitespace-pre-line">
+          ${c.full_first || 'ไม่มีข้อมูล First Report ต้นฉบับ'}
+        </div>
+      </div>
+    `;
+  } else if (activeModalTab === 'second') {
+    body.innerHTML = `
+      <div class="space-y-3">
+        <div class="text-xs font-mono font-bold text-slate-500 uppercase">Second Report Root Cause &amp; Corrective Action Log</div>
+        <div class="bg-slate-50 p-4 rounded-xl border border-slate-200 font-mono text-xs leading-relaxed text-slate-800 whitespace-pre-line">
+          ${c.full_second || 'ไม่มีข้อมูล Second Report ต้นฉบับ'}
+        </div>
+      </div>
+    `;
+  } else if (activeModalTab === 'third') {
+    body.innerHTML = `
+      <div class="space-y-3">
+        <div class="text-xs font-mono font-bold text-slate-500 uppercase">Third Report / Progress Update</div>
+        <div class="bg-slate-50 p-4 rounded-xl border border-slate-200 text-xs leading-relaxed text-slate-800 whitespace-pre-line">
+          ${c.full_third || 'ไม่มีข้อมูล Third Report / Progress Update'}
+        </div>
+      </div>
+    `;
+  } else if (activeModalTab === 'overview') {
+    body.innerHTML = `
+      <div class="space-y-3">
+        <div class="flex flex-col sm:flex-row sm:items-end sm:justify-between gap-1 border-b border-slate-200 pb-2">
+          <div><div class="text-xs font-mono font-bold text-brand-700 uppercase">Bilingual Overview</div><div class="text-sm font-semibold text-slate-800 mt-1">ภาพรวมเคส ภาษาไทย และ English</div></div>
+          <div class="text-[11px] text-slate-400">Source: Overview-TH / Overview-EN</div>
+        </div>
+        ${renderBilingualOverview(c)}
+      </div>
+    `;
+  } else if (activeModalTab === 'final') {
+    body.innerHTML = `
+      <div class="space-y-3">
+        <div class="text-xs font-mono font-bold text-emerald-700 uppercase">Final Report / Closure</div>
+        <div class="bg-emerald-50/50 p-4 rounded-xl border border-emerald-200 text-xs leading-relaxed text-slate-800 whitespace-pre-line">
+          ${c.full_final || 'ไม่มีข้อมูล Final Report'}
+        </div>
+      </div>
+    `;
+  }
+}
+
+function printCurrentModal() {
+  if (!currentModalCaseId) return;
+  const c = ALL_CASES.find(x => x.id === currentModalCaseId);
+  
+  const printArea = document.getElementById('printableArea');
+  printArea.innerHTML = `
+    <div style="padding: 24px; font-family: sans-serif; line-height: 1.6;">
+      <h1 style="border-bottom: 2px solid #dc2626; padding-bottom: 8px; font-size: 20px; color: #dc2626;">BPI CASE REPORT: ${c.id}</h1>
+      <p><strong>Customer:</strong> ${c.customer} | <strong>Date:</strong> ${c.date}</p>
+      <p><strong>Section:</strong> ${c.section} | <strong>Severity:</strong> ${c.severity} | <strong>Type:</strong> ${c.type}</p>
+      <p><strong>Classification:</strong> ${c.classification}</p>
+      <hr style="margin: 16px 0;"/>
+      ${hasOverview(c) ? `<h3>Overview / ภาพรวม:</h3><table style="width:100%;border-collapse:collapse;margin:8px 0 16px"><tr><th style="border:1px solid #ccc;padding:8px;text-align:left">Thai / Overview-TH</th><th style="border:1px solid #ccc;padding:8px;text-align:left">English / Overview-EN</th></tr><tr><td style="border:1px solid #ccc;padding:8px;white-space:pre-line;vertical-align:top">${escapeHtml(c.overview_th || '')}</td><td style="border:1px solid #ccc;padding:8px;white-space:pre-line;vertical-align:top">${escapeHtml(c.overview_en || c.overview || '')}</td></tr></table>` : ''}
+      <h3>Root Cause:</h3>
+      <p>${c.cause}</p>
+      <h3>Countermeasure &amp; Prevention:</h3>
+      <p>${c.prevention}</p>
+      <hr style="margin: 16px 0;"/>
+      <p style="font-size: 10px; color: #666;">BPI Knowledge Library System · Official Safety &amp; Quality Document</p>
+    </div>
+  `;
+  window.print();
+}
+
+function toggleAnalyticsModal() {
+  const el = document.getElementById('analyticsOverlay');
+  if (el.classList.contains('hidden')) {
+    renderAnalyticsCharts();
+    el.classList.remove('hidden');
+    document.body.classList.add('overflow-hidden');
+  } else {
+    el.classList.add('hidden');
+    document.body.classList.remove('overflow-hidden');
+  }
+}
+
+function renderAnalyticsCharts() {
+  const renderBarChart = (containerId, counts, total) => {
+    const el = document.getElementById(containerId);
+    el.innerHTML = Object.entries(counts).map(([label, count]) => {
+      const pct = total > 0 ? Math.round((count / total) * 100) : 0;
+      return `
+        <div class="space-y-1">
+          <div class="flex justify-between text-xs font-medium">
+            <span>${label}</span>
+            <span class="font-mono text-slate-500">${count} (${pct}%)</span>
+          </div>
+          <div class="w-full bg-slate-200 rounded-full h-2 overflow-hidden">
+            <div class="bg-brand-600 h-2 rounded-full transition-all duration-500" style="width: ${pct}%"></div>
+          </div>
+        </div>
+      `;
+    }).join('');
+  };
+
+  const total = ALL_CASES.length;
+  
+  const sevCounts = { High: 0, Medium: 0, Low: 0 };
+  ALL_CASES.forEach(c => { if (sevCounts[c.severity] !== undefined) sevCounts[c.severity]++; });
+  renderBarChart('chartSeverity', sevCounts, total);
+
+  const secCounts = {};
+  ALL_CASES.forEach(c => { secCounts[c.section] = (secCounts[c.section] || 0) + 1; });
+  renderBarChart('chartSection', secCounts, total);
+
+  const typeCounts = {};
+  ALL_CASES.forEach(c => { typeCounts[c.type] = (typeCounts[c.type] || 0) + 1; });
+  renderBarChart('chartType', typeCounts, total);
+}
+
+document.getElementById('btnImport').addEventListener('click', () => {
+  document.getElementById('csvFileInput').click();
+});
+
+document.getElementById('csvFileInput').addEventListener('change', (e) => {
+  const file = e.target.files[0];
+  if (!file) return;
+
+  const msgEl = document.getElementById('importMsg');
+  msgEl.textContent = 'กำลังประมวลผลไฟล์ CSV...';
+
+  Papa.parse(file, {
+    header: true,
+    skipEmptyLines: true,
+    encoding: 'UTF-8',
+    complete: function(results) {
+      try {
+        const rows = results.data.filter(r => (r['Report No.'] || r['No.'] || r.id || '').toString().trim());
+        if (rows.length === 0) {
+          msgEl.textContent = 'ไม่พบข้อมูลเคสในไฟล์ CSV (กรุณาเช็ค Report No.)';
+          return;
         }
 
-        function updateStats() {
-            document.getElementById('statTotal').innerText = filteredData.length;
-            document.getElementById('statAccident').innerText = filteredData.filter(i => i['Type of accident']?.includes('Accident')).length;
-            document.getElementById('statMistake').innerText = filteredData.filter(i => i['Type of accident']?.includes('Mistake') || i['Type of accident']?.includes('Wrong')).length;
-            document.getElementById('statCompliance').innerText = filteredData.filter(i => i['Classification for second report ']?.includes('Customs')).length;
-        }
+        ALL_CASES = normalizeCases(rows);
+        csvHasBeenImported = true;
+        lastImportedAt = new Date();
+        resetToAllCases();
+        renderDatasetStatus();
+        msgEl.textContent = `นำเข้าสำเร็จ: ${ALL_CASES.length} เคส`;
+      } catch (err) {
+        console.error(err);
+        msgEl.textContent = 'เกิดข้อผิดพลาดในการอ่านไฟล์ CSV';
+      }
+    }
+  });
+});
 
-        function resetFilters() {
-            activeCategory = 'All';
-            activeFilters = { severity: null };
-            document.getElementById('searchInput').value = '';
-            document.querySelectorAll('.filter-chip').forEach(btn => {
-                btn.classList.remove('bg-brand-100', 'text-brand-700', 'border-brand-300');
-                btn.classList.add('bg-slate-50');
-            });
-            renderCategories();
-            applyFilters('');
-        }
+document.getElementById('searchInput').addEventListener('input', (e) => {
+  searchTerm = e.target.value.trim();
+  updateClearFilterButton();
+  renderGrid();
+  highlightQuickAction();
+});
 
-        // --- MODAL LOGIC ---
+document.getElementById('sortSelect').addEventListener('change', (e) => {
+  currentSort = e.target.value;
+  renderGrid();
+});
 
-        function openModal(index) {
-            // Note: Index refers to filteredData, need to be careful if filtering changes
-            // For simplicity in this demo, we assume direct mapping or pass ID. 
-            // Let's use the object directly.
-            const item = filteredData[index];
-            if(!item) return;
-
-            document.getElementById('modalReportNo').innerText = item['Report No.'];
-            document.getElementById('modalDate').innerText = item['Date of occurrence of accident / nonconformity'];
-            document.getElementById('modalCustomer').innerText = item['Customer Name / Sub name'];
-            document.getElementById('modalSection').innerText = `${item['Section']} | ${item['Occurrence area (base)']}`;
-            
-            const sevEl = document.getElementById('modalSeverity');
-            sevEl.innerText = item['Incident Severity Level'];
-            sevEl.className = `px-2.5 py-0.5 rounded-full text-xs font-medium ${
-                item['Incident Severity Level'] === 'High' ? 'bg-red-100 text-red-700' : 
-                item['Incident Severity Level'] === 'Medium' ? 'bg-amber-100 text-amber-700' : 
-                'bg-emerald-100 text-emerald-700'
-            }`;
-
-            // Clean texts
-            const cleanText = (txt) => txt ? txt.replace(/^"|"$/g, '').replace(/\n/g, '<br>') : 'No data available';
-
-            document.getElementById('modalCause').innerHTML = cleanText(item['Second Report']);
-            document.getElementById('modalPrevention').innerHTML = cleanText(item['Second Report']); // Simplified for demo, ideally separate fields
-            document.getElementById('modalThirdReport').innerHTML = cleanText(item['Third Report ']);
-            document.getElementById('modalOverview').innerHTML = cleanText(item['Overview']);
-            document.getElementById('modalFirstReport').innerHTML = cleanText(item['First Report']);
-            
-            document.getElementById('modalArea').innerText = item['Occurrence area (base)'];
-            document.getElementById('modalLiability').innerText = item['Liability'];
-            document.getElementById('modalSubcon').innerText = item['Sub contract name'];
-            document.getElementById('modalClass').innerText = item['Classification for second report '];
-
-            switchTab('summary');
-            document.getElementById('detailModal').classList.remove('hidden');
-        }
-
-        function closeModal() {
-            document.getElementById('detailModal').classList.add('hidden');
-        }
-
-        function switchTab(tabName) {
-            // Hide all contents
-            document.querySelectorAll('.tab-content').forEach(el => el.classList.add('hidden'));
-            document.getElementById(`content-${tabName}`).classList.remove('hidden');
-            
-            // Reset buttons
-            document.querySelectorAll('.tab-btn').forEach(el => {
-                el.classList.remove('border-brand-500', 'text-brand-600');
-                el.classList.add('border-transparent', 'text-slate-500');
-            });
-            
-            // Activate button
-            const btn = document.getElementById(`tab-${tabName}`);
-            btn.classList.remove('border-transparent', 'text-slate-500');
-            btn.classList.add('border-brand-500', 'text-brand-600');
-        }
-
-        // --- ANALYTICS CHARTS ---
-        
-        let chartTypeInstance = null;
-        let chartSevInstance = null;
-        let chartSecInstance = null;
-
-        function toggleDashboard() {
-            const modal = document.getElementById('analyticsModal');
-            if (modal.classList.contains('hidden')) {
-                modal.classList.remove('hidden');
-                renderCharts();
-            } else {
-                modal.classList.add('hidden');
-            }
-        }
-
-        function renderCharts() {
-            // Prepare Data
-            const typeCounts = {};
-            const sevCounts = { High: 0, Medium: 0, Low: 0 };
-            const secCounts = {};
-
-            allData.forEach(d => {
-                // Type
-                const t = d['Type of accident'] || 'Other';
-                typeCounts[t] = (typeCounts[t] || 0) + 1;
-                
-                // Severity
-                const s = d['Incident Severity Level'];
-                if (sevCounts[s] !== undefined) sevCounts[s]++;
-                
-                // Section
-                const sec = d['Section'] || 'Unknown';
-                secCounts[sec] = (secCounts[sec] || 0) + 1;
-            });
-
-            // Destroy old charts if exist
-            if (chartTypeInstance) chartTypeInstance.destroy();
-            if (chartSevInstance) chartSevInstance.destroy();
-            if (chartSecInstance) chartSecInstance.destroy();
-
-            // Chart 1: Type (Doughnut)
-            const ctxType = document.getElementById('chartType').getContext('2d');
-            chartTypeInstance = new Chart(ctxType, {
-                type: 'doughnut',
-                data: {
-                    labels: Object.keys(typeCounts),
-                    datasets: [{
-                        data: Object.values(typeCounts),
-                        backgroundColor: ['#0ea5e9', '#f59e0b', '#ef4444', '#10b981', '#64748b'],
-                        borderWidth: 0
-                    }]
-                },
-                options: { responsive: true, plugins: { legend: { position: 'bottom' } } }
-            });
-
-            // Chart 2: Severity (Bar)
-            const ctxSev = document.getElementById('chartSeverity').getContext('2d');
-            chartSevInstance = new Chart(ctxSev, {
-                type: 'bar',
-                data: {
-                    labels: Object.keys(sevCounts),
-                    datasets: [{
-                        label: 'Count',
-                        data: Object.values(sevCounts),
-                        backgroundColor: ['#ef4444', '#f59e0b', '#10b981'],
-                        borderRadius: 6
-                    }]
-                },
-                options: { 
-                    responsive: true, 
-                    scales: { y: { beginAtZero: true, ticks: { stepSize: 1 } } },
-                    plugins: { legend: { display: false } }
-                }
-            });
-
-            // Chart 3: Section (Horizontal Bar)
-            // Sort sections by count
-            const sortedSec = Object.entries(secCounts).sort((a,b) => b[1] - a[1]).slice(0, 5);
-            
-            const ctxSec = document.getElementById('chartSection').getContext('2d');
-            chartSecInstance = new Chart(ctxSec, {
-                type: 'bar',
-                data: {
-                    labels: sortedSec.map(i => i[0]),
-                    datasets: [{
-                        label: 'Incidents',
-                        data: sortedSec.map(i => i[1]),
-                        backgroundColor: '#0ea5e9',
-                        borderRadius: 4
-                    }]
-                },
-                options: { 
-                    indexAxis: 'y',
-                    responsive: true,
-                    scales: { x: { beginAtZero: true } }
-                }
-            });
-        }
-
-        // Start App
-        window.addEventListener('DOMContentLoaded', init);
-
-    </script>
+window.onload = function() {
+  csvHasBeenImported = false;
+  ALL_CASES = normalizeCases(SEED_DATA.slice(0, 1));
+  updateBookmarkUI();
+  renderCategoryCards();
+  renderChips();
+  renderGrid();
+  renderDatasetStatus();
+  highlightQuickAction();
+};
+</script>
 </body>
 </html>
